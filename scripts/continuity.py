@@ -15,7 +15,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0-alpha.3'
+VERSION = '0.1.0-alpha.4'
 MAX_DOCUMENT = 128 * 1024
 MAX_FILE = 64 * 1024 * 1024
 PRIVATE_PARTS = {'.git', '.continuity', '.ssh', '.aws', '.codex', '.claude', '.dsh', 'credentials.json'}
@@ -64,8 +64,8 @@ def strict_json(raw):
     try:
         return json.loads(raw, object_pairs_hook=pairs,
                           parse_constant=lambda _: (_ for _ in ()).throw(ValueError('nonfinite')))
-    except (ValueError, UnicodeError):
-        raise Fault('INVALID_INPUT', 'Invalid UTF-8 JSON') from None
+    except (ValueError, UnicodeError, RecursionError):
+        raise Fault('INVALID_INPUT', 'Invalid or overly nested UTF-8 JSON') from None
 
 
 def project_root(path):

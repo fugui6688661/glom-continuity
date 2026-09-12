@@ -1,6 +1,14 @@
 # 跨平台 CI 草案与验证边界
 
-日期：2026-09-12。状态：**仅本地草案，尚未在 GitHub Actions 运行**。
+日期：2026-09-12。**最新：首轮私有CI已运行，2组通过、2组失败，见下节。**后面的“本轮草案”是初始编写快照，不代表现在还没运行。
+
+## 第一次运行与修复候选
+
+[运行34687554263](https://github.com/fugui6688661/glom-continuity/actions/runs/34687554263)，提交`6cbd4be5995df70bc4c0dde6dec5e73bcb290321`，alpha.3。Linux/Python3.12与macOS/Python3.12通过；Linux/Python3.10在深层JSON错误处理测试失败；Windows/Python3.12有2项原始stdio通信测试失败、8项预先声明的POSIX项目跳过。不是四平台通过。
+
+alpha.4候选：JSON解析捕获`RecursionError`并返回`INVALID_INPUT`；测试端为原始Windows子进程补充最小系统启动环境（不是继承模型凭据），保留所有原断言；超时捕获使用兼容3.10的`asyncio.TimeoutError`。原Windows checkout被Git转换为CRLF，文件哈希与LF发行包不同，新增`.gitattributes`固定LF以便复核同一字节。必须等待同组CI复跑才报告修复生效。
+
+## 初始草案记录
 
 本轮只新增 `.github/workflows/verify.yml` 与本文，不改源码、测试、安装包清单、pyproject 或任务包；没有 commit、push、dispatch、发布或读取账号凭据。起始目录不是 Git 工作树，因此本地文件写入不等于已经落入远端仓库。
 

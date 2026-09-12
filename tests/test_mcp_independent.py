@@ -99,6 +99,13 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
         self.launcher = self.scratch / "unrelated launcher cwd"
         self.launcher.mkdir()
         self.env = {"PATH": os.defpath, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONIOENCODING": "utf-8"}
+        # A raw Windows child needs its OS bootstrap environment. The SDK
+        # client supplies defaults itself; a hand-written wire peer does not.
+        # Keep this allowlist narrow: never inherit account/model credentials.
+        if os.name == "nt":
+            self.env.update({key: os.environ[key] for key in
+                             ("SystemRoot", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP")
+                             if key in os.environ})
         self.input = self.project / "stock.csv"
         self.original = b"color,count\namber,3\nblue,4\nRAW_FIXTURE_ONLY_NOT_FOR_EXPORT\n"
         self.input.write_bytes(self.original)
@@ -178,7 +185,7 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
                 process.terminate()
                 try:
                     await asyncio.wait_for(process.wait(), 3)
-                except TimeoutError:
+                except asyncio.TimeoutError:
                     process.kill()
                     await process.wait()
             await stderr
@@ -554,7 +561,7 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
                         status_responded = message["result"]["structuredContent"]["ok"]
                     if message.get("id") == checkpoint_id:
                         break
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 blocked = True
         # Fresh process recovers without deleting/recreating any project storage.
         self.assertEqual(self.cli("status")["revision"], 1)
@@ -604,7 +611,7 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
                     if message.get("id") == status_id:
                         status_returned = message["result"]["structuredContent"]["ok"]
                         break
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 pass
         self.assertEqual(self.cli("status")["revision"], 1)
         observation("repeated_fifo", pending_save_requests=42, status_responded_within_2s=status_returned,

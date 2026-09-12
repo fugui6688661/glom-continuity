@@ -84,6 +84,12 @@ Frozen source for this 65-case regression:
 
 The independent reviewer first ran its 12 cases on the earlier alpha.2 CLI; the implementation thread subsequently reran all 65 on the hashes above. Neither run is a fresh model-behavior trial. [Private cross-platform CI design and exact skip policy](platform-validation.md) records the planned hosted-runner checks separately; no unrun platform is marked passed.
 
+### First hosted matrix and alpha.4 fixes
+
+Private [run 34687554263](https://github.com/fugui6688661/glom-continuity/actions/runs/34687554263), commit `6cbd4be5995df70bc4c0dde6dec5e73bcb290321`, tested alpha.3 in four hosted environments. Linux/Python3.12 and macOS/Python3.12 passed. Linux/Python3.10 failed one deep-JSON case; Windows/Python3.12 failed two raw-stdio cases, with eight explicitly reported POSIX skips. All four installed dependencies and passed the synthetic smoke. This is genuine platform evidence, including failures, not proof of all-platform readiness.
+
+The alpha.4 candidate catches JSON recursion errors in the product, supplies the test wire peer's missing Windows system environment without forwarding credentials, uses the Python3.10-compatible timeout type, and fixes Git checkout line endings for byte-identical provenance. Original assertions and the eight-skip policy remain unchanged. A new matrix result is required before claiming these fixes passed.
+
 ## Still unverified
 
 - A full real-agent save→handoff→different vendor→continue→save cycle.

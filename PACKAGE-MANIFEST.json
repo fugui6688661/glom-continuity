@@ -5,7 +5,12 @@
     {
       "path": ".codex-plugin/plugin.json",
       "bytes": 797,
-      "sha256": "65e58dfdebeddcf46173181fee17a17935d6576073972951cde9e1f8045461e1"
+      "sha256": "26d776f4d4a3c6857dda3bc6b6318e1b38892cd8b8b463c7e34cbbf0f9e0a4a0"
+    },
+    {
+      "path": ".gitattributes",
+      "bytes": 90,
+      "sha256": "f0e71fe57e56373baaa0ba8ceef21125deff898511b7f047569dce522899e129"
     },
     {
       "path": ".github/workflows/verify.yml",
@@ -19,13 +24,13 @@
     },
     {
       "path": "IMPLEMENTATION.md",
-      "bytes": 4316,
-      "sha256": "924ea9161de0633ca000032803560e5480cc548dfed4b3a00514eaf9e96beae2"
+      "bytes": 4385,
+      "sha256": "14abc8a463f12a5fb3cb6ee6b17122803ae2f94461198acecdb67244edaeb341"
     },
     {
       "path": "INSTALL.md",
       "bytes": 4395,
-      "sha256": "2ff3046a25d8c0d3fbbe7e006ae07bd26cb051c403f370a7b402719af6339bfa"
+      "sha256": "89170efb16938dc07c56e1bc557bc5821f342873f16bbd949f12dc69c09453a5"
     },
     {
       "path": "LICENSE",
@@ -40,12 +45,12 @@
     {
       "path": "README.en.md",
       "bytes": 7054,
-      "sha256": "283f3028803712e6c90bdb8134b985c66a164a9d947f242acb6994f6fd9313bf"
+      "sha256": "02092a9a98506724d5c60b1113fd352c904614a422446446324854d79b849de0"
     },
     {
       "path": "README.md",
       "bytes": 7922,
-      "sha256": "78994a378944da642c5c9da33b7fa49f39f925e078da78a71784033f9153b52b"
+      "sha256": "75d056b7cddcd71fe515fbaaf3dce6a7b09fc64b0c2aa2966713dfed51d74276"
     },
     {
       "path": "SECURITY.md",
@@ -94,13 +99,13 @@
     },
     {
       "path": "docs/platform-validation.md",
-      "bytes": 18348,
-      "sha256": "1492ae7d72ca5837e8b277a83c019de52793fee64b9f54cacac33eb5a173b7a3"
+      "bytes": 19315,
+      "sha256": "7612e18824fe606ff3c7e7ae24dbace98b749b89c0290bc968ec132800db2d4d"
     },
     {
       "path": "docs/verification.md",
-      "bytes": 7836,
-      "sha256": "9dabe04fc85dd0581ba84dcdf9ab7bd154d300c2ebcfe13256dd6d91c3013e5e"
+      "bytes": 8823,
+      "sha256": "e1d893741ab07874f330341ef8264c9bd4621f0031e1ad6d9471fab59643fd1c"
     },
     {
       "path": "pyproject.toml",
@@ -114,8 +119,8 @@
     },
     {
       "path": "release-files.json",
-      "bytes": 1054,
-      "sha256": "47aa713d94ea82ea14b0ad6db68bb7812809b988677b27d5b5d7db0914b0736b"
+      "bytes": 1074,
+      "sha256": "3470de7f9daf49478c81eae06b64f3f4ac3c1f2983393ae624355fd3f38aeb02"
     },
     {
       "path": "requirements-mcp.txt",
@@ -139,8 +144,8 @@
     },
     {
       "path": "scripts/continuity.py",
-      "bytes": 18746,
-      "sha256": "74fe600e12d1e256927ed670dfb4499f908ce3a49907615a97c48a40a30a853f"
+      "bytes": 18779,
+      "sha256": "e0fbc0eab770ee619ea4da46c3dd32d2b2f55c2657f17580566a2606eedc5dca"
     },
     {
       "path": "scripts/mcp_server.py",
@@ -184,8 +189,8 @@
     },
     {
       "path": "tests/test_mcp_independent.py",
-      "bytes": 37681,
-      "sha256": "d4385f1ec8fafdbd12ce2fc9ea797c6795766b66c377ca987abff0f2524b4d60"
+      "bytes": 38168,
+      "sha256": "73dbe4dd95d6e5c62715451f1a419d620a958ab792d19b998942adc1aa3060d7"
     },
     {
       "path": "tests/test_recovery_independent.py",

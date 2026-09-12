@@ -8,7 +8,7 @@
 
 [English](README.en.md) · [MCP 接入](adapters/mcp.md) · [实测记录](docs/verification.md) · [安全与数据](SECURITY.md)
 
-**当前为 0.1.0-alpha.3 本地候选，尚未公开发布。**CLI、可选 MCP 与标准Python安装入口已实现；早期版本有一个真实 Codex 会话通过 MCP 恢复合成项目并产出文件。这不是当前新版双模型接力通过，也不是“所有 Agent 已验证”。
+**当前为 0.1.0-alpha.4 本地候选，尚未公开发布。**CLI、可选 MCP 与标准Python安装入口已实现；早期版本有一个真实 Codex 会话通过 MCP 恢复合成项目并产出文件。这不是当前新版双模型接力通过，也不是“所有 Agent 已验证”。
 
 第一次使用请看[安装与试用](INSTALL.md)：从虚构案例开始，再接入自己的助手。基础工具不需要模型API；使用云端助手时仍遵循该助手的计费与隐私规则。
 

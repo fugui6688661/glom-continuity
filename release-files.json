@@ -1,6 +1,7 @@
 [
   ".codex-plugin/plugin.json",
   ".gitignore",
+  ".gitattributes",
   ".github/workflows/verify.yml",
   "README.md",
   "README.en.md",
