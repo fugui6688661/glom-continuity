@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv*/
+.continuity/
+dist/
+qa/*
+!qa/adapter-readiness.md
+continuity-demo/
+.env
+.env.*

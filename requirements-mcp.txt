@@ -1,0 +1,2 @@
+# Optional MCP transport only; CLI has no external dependencies.
+mcp==2.2.0
