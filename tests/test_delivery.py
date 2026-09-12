@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -11,6 +12,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Delivery(unittest.TestCase):
+    def test_first_demo_outputs_utf8_in_a_legacy_pipe_environment(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / 'demo'
+            result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/smoke_demo.py'),
+                                     '--output', str(output)],
+                                    env=dict(os.environ, PYTHONIOENCODING='ascii'),
+                                    capture_output=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout.decode('utf-8'))
+            self.assertEqual(data['state'], 'protocol_demo_passed')
+            self.assertFalse(data['real_model_handoff_verified'])
+            self.assertTrue(Path(data['report']).is_file())
+
     def test_new_user_can_run_a_protocol_demo_without_modifying_an_existing_directory(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / 'demo'

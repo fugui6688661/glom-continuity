@@ -90,6 +90,12 @@ Private [run 34687554263](https://github.com/fugui6688661/glom-continuity/action
 
 The alpha.4 candidate catches JSON recursion errors in the product, supplies the test wire peer's missing Windows system environment without forwarding credentials, uses the Python3.10-compatible timeout type, and fixes Git checkout line endings for byte-identical provenance. Original assertions and the eight-skip policy remain unchanged. A new matrix result is required before claiming these fixes passed.
 
+### Second hosted matrix and legacy-encoding regression
+
+Private [run 34687974481](https://github.com/fugui6688661/glom-continuity/actions/runs/34687974481), commit `7c911d5e23fb9d6789e7b39bdecbc27ecf8b39d8`, verified alpha.4: 65 passes each on Linux/Python3.10.21, Linux/Python3.12.14 and macOS/Python3.12.10; Windows/Python3.12.10 had 57 passes and the eight declared POSIX skips, no failures. All four summaries report identical CLI SHA-256 `e0fbc0eab770ee619ea4da46c3dd32d2b2f55c2657f17580566a2606eedc5dca`.
+
+Subsequent two new public-boundary tests forced legacy pipe encodings: ASCII and CP1252 caused a Chinese-name initialization to report failure; GBK output was not UTF-8; the first demo also failed. Alpha.5 sets UTF-8/LF inside the CLI/demo process without changing OS settings. The two tests now pass locally (0.518s). The full suite contains 67 cases; alpha.5 still requires its own candidate and hosted regression. UTF-8/LF is the machine-output contract, not a promise that every terminal font can display every character.
+
 ## Still unverified
 
 - A full real-agent save→handoff→different vendor→continue→save cycle.

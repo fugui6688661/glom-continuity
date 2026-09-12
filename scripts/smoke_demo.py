@@ -8,6 +8,8 @@ import sys
 
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='strict', newline='\n')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='New non-existing demo directory')
     args = parser.parse_args()

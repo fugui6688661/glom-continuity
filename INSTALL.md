@@ -24,14 +24,14 @@ py -3 -B scripts/smoke_demo.py --output ./my-first-demo
 
 ## 安装成命令
 
-收到配套的`.whl`文件后，可以安装到自己新建的工具环境。以下以`glom_continuity-0.1.0a4-py3-none-any.whl`为例；只有拿到该文件后才执行。
+收到配套的`.whl`文件后，可以安装到自己新建的工具环境。以下以`glom_continuity-0.1.0a5-py3-none-any.whl`为例；只有拿到该文件后才执行。
 基础安装从本地wheel读取，不联网、不调用模型。不要在已有同名环境上重复创建。
 
 Mac / Linux：
 
 ```sh
 python3 -m venv .continuity-tools
-.continuity-tools/bin/python -m pip install --no-index --no-deps ./glom_continuity-0.1.0a4-py3-none-any.whl
+.continuity-tools/bin/python -m pip install --no-index --no-deps ./glom_continuity-0.1.0a5-py3-none-any.whl
 .continuity-tools/bin/glom-continuity --version
 .continuity-tools/bin/glom-continuity-demo --output ./installed-demo
 ```
@@ -40,7 +40,7 @@ Windows PowerShell：
 
 ```powershell
 py -3 -m venv .continuity-tools
-.\.continuity-tools\Scripts\python.exe -m pip install --no-index --no-deps .\glom_continuity-0.1.0a4-py3-none-any.whl
+.\.continuity-tools\Scripts\python.exe -m pip install --no-index --no-deps .\glom_continuity-0.1.0a5-py3-none-any.whl
 .\.continuity-tools\Scripts\glom-continuity.exe --version
 .\.continuity-tools\Scripts\glom-continuity-demo.exe --output .\installed-demo
 ```

@@ -34,7 +34,13 @@ This is an early candidate with local protocol tests and one live Codex recovery
 
 Start with a synthetic project. Save it, recover it, and see what happens when its inputs change.
 
-## Release notes draft: 0.1.0-alpha.2
+## Release notes draft: 0.1.0-alpha.5
+
+- Added a local wheel, installed CLI/demo/MCP commands, and a first-use guide. Uninstallation leaves project records intact.
+- Added independently authored recovery cases and a bounded private Windows/Linux/macOS CI matrix; exact per-version results and platform skips remain in the verification record.
+- Fixed excessive-JSON-depth errors, legacy pipe encodings for Chinese text, and test-host bootstrap differences. Old failed runs are retained; a fix is not marked verified before its matching rerun.
+
+Earlier alpha.2 work retained:
 
 - Added an optional project-bound MCP stdio adapter using the official Python SDK. Read tools by default; project-state writes require an explicit startup option.
 - Kept the portable CLI dependency-free and used the same state/validation contract for both interfaces.

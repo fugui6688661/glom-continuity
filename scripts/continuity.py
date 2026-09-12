@@ -15,7 +15,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0-alpha.4'
+VERSION = '0.1.0-alpha.5'
 MAX_DOCUMENT = 128 * 1024
 MAX_FILE = 64 * 1024 * 1024
 PRIVATE_PARTS = {'.git', '.continuity', '.ssh', '.aws', '.codex', '.claude', '.dsh', 'credentials.json'}
@@ -360,6 +360,10 @@ def execute(args):
 
 
 def main():
+    # JSON consumers must receive UTF-8/LF regardless of the host's legacy
+    # console or pipe encoding. Do not change the parent process environment.
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='strict', newline='\n')
     try:
         args = parser().parse_args()
         print(wire({'ok': True, 'code': 'OK', 'data': execute(args)}))

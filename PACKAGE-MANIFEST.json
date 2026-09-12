@@ -5,7 +5,7 @@
     {
       "path": ".codex-plugin/plugin.json",
       "bytes": 797,
-      "sha256": "26d776f4d4a3c6857dda3bc6b6318e1b38892cd8b8b463c7e34cbbf0f9e0a4a0"
+      "sha256": "41ee972c1cab6ed97ac4b31725bb5c6e1c51cc159511adf26a706243abf9d47e"
     },
     {
       "path": ".gitattributes",
@@ -24,13 +24,13 @@
     },
     {
       "path": "IMPLEMENTATION.md",
-      "bytes": 4385,
-      "sha256": "14abc8a463f12a5fb3cb6ee6b17122803ae2f94461198acecdb67244edaeb341"
+      "bytes": 4390,
+      "sha256": "1a6d95fc3f0c071d5372870151535b89d84d4a370682763d55d948885c3afecb"
     },
     {
       "path": "INSTALL.md",
       "bytes": 4395,
-      "sha256": "89170efb16938dc07c56e1bc557bc5821f342873f16bbd949f12dc69c09453a5"
+      "sha256": "d45c8c1bf4e584cb2312ea3b06aa23ab34dfddebceab764407e3b86caf4bab64"
     },
     {
       "path": "LICENSE",
@@ -45,12 +45,12 @@
     {
       "path": "README.en.md",
       "bytes": 7054,
-      "sha256": "02092a9a98506724d5c60b1113fd352c904614a422446446324854d79b849de0"
+      "sha256": "79ccc9f48d71a31d49773dd8eba1a5ca495b2abd0fde6aee7776878fe2041be1"
     },
     {
       "path": "README.md",
       "bytes": 7922,
-      "sha256": "75d056b7cddcd71fe515fbaaf3dce6a7b09fc64b0c2aa2966713dfed51d74276"
+      "sha256": "d7bde86b8009ed2b038dfb823a8e623216d41bb6a7b402716b03f7c7adff42f7"
     },
     {
       "path": "SECURITY.md",
@@ -94,18 +94,18 @@
     },
     {
       "path": "docs/launch-copy.md",
-      "bytes": 3507,
-      "sha256": "6f15c439df9d92ec9450b4edd5204cf302ebf7bcd618bde72212f7337f0fc459"
+      "bytes": 4044,
+      "sha256": "131f3cf6fe6c72ed673b61425ccd8df5f13ab5fff76a616431ce18cbef7f72e1"
     },
     {
       "path": "docs/platform-validation.md",
-      "bytes": 19315,
-      "sha256": "7612e18824fe606ff3c7e7ae24dbace98b749b89c0290bc968ec132800db2d4d"
+      "bytes": 20431,
+      "sha256": "9f5b1aa13b6a4f528dc6b1681a5734214728e7888fcd0ab1539947f709971058"
     },
     {
       "path": "docs/verification.md",
-      "bytes": 8823,
-      "sha256": "e1d893741ab07874f330341ef8264c9bd4621f0031e1ad6d9471fab59643fd1c"
+      "bytes": 9863,
+      "sha256": "b940ec1a1d96459438e3500c5648d8cf8e5c1ea64afc80d08b6d5683d5bd0d70"
     },
     {
       "path": "pyproject.toml",
@@ -144,8 +144,8 @@
     },
     {
       "path": "scripts/continuity.py",
-      "bytes": 18779,
-      "sha256": "e0fbc0eab770ee619ea4da46c3dd32d2b2f55c2657f17580566a2606eedc5dca"
+      "bytes": 19055,
+      "sha256": "468762d7445e69d51cffeba9dd4c2af468cc678cb64445ba26590c183581e614"
     },
     {
       "path": "scripts/mcp_server.py",
@@ -154,8 +154,8 @@
     },
     {
       "path": "scripts/smoke_demo.py",
-      "bytes": 4064,
-      "sha256": "2540e6b5752e6821230879448c5802fb3908b50ea0cd21c63e50107558904ca1"
+      "bytes": 4187,
+      "sha256": "0f4d1dc1546fb2858c9147f8e291ac919c5309beb7b3d85e6e384887fc902816"
     },
     {
       "path": "skills/project-continuity/SKILL.md",
@@ -164,13 +164,13 @@
     },
     {
       "path": "tests/test_cli.py",
-      "bytes": 8443,
-      "sha256": "75b1c0dd65e0e53c2b7ffed0c9ae5cb050a957e68b3e6c46f2f316a0d7baaff3"
+      "bytes": 9499,
+      "sha256": "9e474f690dcfe508c7c3c13619bd7c695be134bda020bdd979710d01c6c0d41f"
     },
     {
       "path": "tests/test_delivery.py",
-      "bytes": 2835,
-      "sha256": "3d17eb54a992df5855e7a95b54d68d5f7b7bc9d44686450c6eef5b53e12fc4e4"
+      "bytes": 3661,
+      "sha256": "a61e9cb4669a70f415f071233d3d7a0fd13afe35d035b1ec8ea3a689353745c8"
     },
     {
       "path": "tests/test_independent.py",

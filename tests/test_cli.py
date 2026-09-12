@@ -1,5 +1,6 @@
 """Behavioral acceptance at the executable CLI boundary; no private DB assertions."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -55,6 +56,22 @@ class ContinuityCLI(unittest.TestCase):
         self.assertEqual(state['checkpoint']['next_action'], '检查两行金额合计为30，再准备汇总')
         self.assertEqual(self.run_cli('check')['data']['state'], 'references_current')
         self.assertFalse(self.run_cli('check')['data']['semantic_completion_verified'])
+
+    def test_machine_output_is_utf8_even_with_a_legacy_pipe_encoding(self):
+        for encoding in ('ascii', 'cp1252', 'gbk'):
+            with self.subTest(encoding=encoding):
+                project = self.root / encoding
+                project.mkdir()
+                env = dict(os.environ, PYTHONIOENCODING=encoding)
+                command = [sys.executable, '-B', str(CLI), '--project', str(project)]
+                for args in (['init', '--name', '中文项目 café — 灯'], ['status']):
+                    result = subprocess.run(command + args, env=env, capture_output=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    data = json.loads(result.stdout.decode('utf-8'))
+                    self.assertTrue(result.stdout.endswith(b'\n'))
+                    self.assertFalse(result.stdout.endswith(b'\r\n'))
+                    self.assertEqual(data['data']['name'], '中文项目 café — 灯')
+                    self.assertEqual(result.stderr, b'')
 
     def test_context_has_a_strict_wire_budget_and_never_hides_critical_state(self):
         self.run_cli('init', '--name', '恢复测试')
