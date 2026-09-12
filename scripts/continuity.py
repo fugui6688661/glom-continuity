@@ -15,7 +15,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0-alpha.2'
+VERSION = '0.1.0-alpha.3'
 MAX_DOCUMENT = 128 * 1024
 MAX_FILE = 64 * 1024 * 1024
 PRIVATE_PARTS = {'.git', '.continuity', '.ssh', '.aws', '.codex', '.claude', '.dsh', 'credentials.json'}

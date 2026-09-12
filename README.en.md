@@ -8,7 +8,9 @@ A local checkpoint and handoff tool for AI-assisted projects. Save goals, decisi
 
 [中文](README.md) · [MCP setup](adapters/mcp.md) · [Verification](docs/verification.md) · [Security](SECURITY.md)
 
-**0.1.0-alpha.2 local candidate; not publicly released.** The CLI and optional MCP adapter are implemented. One live Codex session recovered a synthetic project through MCP and produced a file. This is not verified universal compatibility or a completed two-model handoff.
+**0.1.0-alpha.3 local candidate; not publicly released.** The CLI, optional MCP adapter and Python package entry points are implemented. A live Codex session recovered a synthetic project and produced a file on an earlier source revision. It does not prove a live two-model handoff on this candidate or universal compatibility.
+
+See [installation and first use](INSTALL.md) for the portable demo and local wheel installation. Installing the base wheel does not call a model; a cloud assistant still applies its own pricing and privacy rules.
 
 ## Try it without an account
 

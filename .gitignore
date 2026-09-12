@@ -8,3 +8,6 @@ qa/*
 continuity-demo/
 .env
 .env.*
+build/
+*.egg-info/
+.DS_Store

@@ -1,6 +1,6 @@
 {
   "name": "glom-continuity",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Local project checkpoints and reviewable handoffs across AI assistants.",
   "author": {
     "name": "GLOM contributors"

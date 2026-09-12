@@ -8,14 +8,17 @@ import sqlite3
 import sys
 from typing import Annotated
 
-import continuity
+if __package__:
+    from . import continuity
+else:
+    import continuity
 
 try:
     from mcp.server import MCPServer
     from mcp.types import CallToolResult, TextContent, ToolAnnotations
     from pydantic import Field
 except ImportError:
-    raise SystemExit('MCP support needs its optional dependency. Install requirements-mcp.txt in a virtual environment.')
+    raise SystemExit('MCP support needs its optional dependency. Install the [mcp] extra or requirements-mcp.txt in a virtual environment.')
 
 
 def build_server(project: Path, allow_writes: bool = False):

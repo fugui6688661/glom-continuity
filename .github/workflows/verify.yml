@@ -1,0 +1,253 @@
+name: Verify standalone tool (private draft)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reviewed:
+        description: "I reviewed this private revision and its synthetic CI inputs; this is not publication approval."
+        type: boolean
+        required: true
+        default: false
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    # No public/fork execution. This guard is not a replacement for PROVENANCE.md.
+    if: >-
+      github.repository == 'fugui6688661/glom-continuity' &&
+      github.event.repository.private == true &&
+      ((github.event_name == 'workflow_dispatch' && inputs.reviewed) ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            python: '3.10'
+          - os: ubuntu-24.04
+            python: '3.12'
+          - os: windows-2022
+            python: '3.12'
+          - os: macos-14
+            python: '3.12'
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      CI_RUNNER_LABEL: ${{ matrix.os }}
+      CI_PYTHON_REQUESTED: ${{ matrix.python }}
+    steps:
+      # Official release-to-SHA evidence: docs/platform-validation.md.
+      - name: Checkout only this revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Set up Python (no dependency cache)
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install SDK and build tools; run discovery and synthetic smoke
+        shell: python
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import platform
+          import re
+          import sqlite3
+          import subprocess
+          import sys
+          import tempfile
+          import time
+
+          def identifier(method, owner):
+              return owner if owner.endswith('.' + method) else owner + '.' + method
+
+          def failure_detail(block):
+              # Extract the last exception, not its free-form message or traceback.
+              exceptions = re.findall(r'^[ \t|+]*([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|ExceptionGroup|Fault|TimeoutExpired))(?:: ([^\n]*))?$', block, re.M)
+              kind, message = exceptions[-1] if exceptions else ('unparsed', '')
+              known_codes = set(('OK IO_ERROR INVALID_INPUT INVALID_PROJECT UNSAFE_PATH UNSAFE_STORAGE '
+                  'MISSING_FILE FILE_TOO_LARGE FILE_CHANGED FILE_UNREADABLE SENSITIVE_CONTENT '
+                  'ALREADY_INITIALIZED NOT_INITIALIZED UNSUPPORTED_SCHEMA CORRUPT_CHECKPOINT '
+                  'HANDOFF_NOT_FOUND NO_CHECKPOINT OUTPUT_EXISTS BUDGET_TOO_SMALL REVISION_CONFLICT '
+                  'EVIDENCE_CHANGED HANDOFF_EXISTS WRONG_RECIPIENT ALREADY_ACCEPTED HANDOFF_EXPIRED '
+                  'STALE_HANDOFF UNKNOWN_COMMAND').split())
+              codes = sorted(set(re.findall(r'\b[A-Z][A-Z_]+\b', message)) & known_codes)
+              codes += [label.upper() + '_' + number for label, number in re.findall(r'\[(Errno|WinError) (\d{1,6})\]', message)]
+              if 'Coverage gap: did not actually SIGKILL' in message:
+                  codes.append('SIGKILL_OBSERVATION_MISSED')
+              comparison = re.match(r'^(-?\d{1,8}|True|False|None) (!=|is not) (-?\d{1,8}|True|False|None)\b', message)
+              frames = re.findall(r'File "[^"\n]*[/\\](test_[A-Za-z0-9_]+\.py)", line (\d+)', block)
+              return {'last_exception_type': kind[:100], 'error_codes': codes or [kind.rsplit('.', 1)[-1]],
+                      'scalar_comparison': comparison.group(0) if comparison else None,
+                      'test_location': ':'.join(frames[-1]) if frames else None}
+
+          def test_summary(stderr, windows):
+              # Allowlist structured facts, never copy tracebacks, observations or skip text.
+              ran = re.search(r'^Ran (\d+) tests? in [0-9.]+s$', stderr, re.M)
+              end = re.search(r'^(OK|FAILED)(?: \(([^\n]*)\))?\s*$', stderr, re.M)
+              counts = {key: 0 for key in ('failures', 'errors', 'skipped',
+                                         'expected failures', 'unexpected successes')}
+              if end:
+                  counts.update({key.strip(): int(value) for key, value in
+                                 re.findall(r'([a-z ]+)=(\d+)', end[2] or '') if key.strip() in counts})
+              permitted = {'test_mcp_independent.IndependentMCPAcceptance.' + name:
+                           ('Named-pipe acceptance case requires POSIX', 'posix_fifo_unavailable') for name in (
+                  'test_19_nonregular_draft_should_not_leave_cli_or_mcp_save_hung',
+                  'test_21_repeated_nonregular_drafts_should_not_starve_status')}
+              permitted.update({'test_recovery_independent.RecoveryIndependentTests.' + name:
+                  ('POSIX permissions only; Windows ACLs not verified', 'posix_permissions_unverified') for name in (
+                  'test_07_read_only_database_preserves_reads_and_rejects_writes',
+                  'test_08_read_only_storage_directory_rejects_writes',
+                  'test_09_read_only_project_reads_but_export_fails_without_partial_file',
+                  'test_10_unreadable_input_never_claims_current_or_consumes_handoff')})
+              permitted.update({'test_recovery_independent.RecoveryIndependentTests.' + name:
+                  ('SIGKILL is POSIX-only; not verified on Windows', 'posix_sigkill_unverified') for name in (
+                  'test_11_sigkill_after_journal_observation_recovers_complete_revision',
+                  'test_12_sigkill_during_stdout_recovers_committed_revision')})
+              skipped = []
+              for method, owner, reason in re.findall(
+                      r'^([A-Za-z0-9_]+) \(([A-Za-z0-9_.]+)\) \.\.\. skipped (.*)$', stderr, re.M):
+                  test_id = identifier(method, owner)
+                  expected, reason_code = permitted.get(test_id, (None, 'unexpected_skip'))
+                  allowed = windows and expected is not None and reason == repr(expected)
+                  skipped.append({'test': test_id, 'allowed': allowed,
+                                  'reason_code': reason_code if allowed else 'unexpected_skip'})
+              headers = list(re.finditer(r'^(FAIL|ERROR): ([A-Za-z0-9_]+) \(([A-Za-z0-9_.]+)\)', stderr, re.M))
+              problems = []
+              for index, header in enumerate(headers):
+                  stop = headers[index + 1].start() if index + 1 < len(headers) else len(stderr)
+                  problems.append({'state': header[1].lower(), 'test': identifier(header[2], header[3]),
+                                   **failure_detail(stderr[header.end():stop])})
+              valid = bool(ran and int(ran[1]) > 0 and end and end[1] == 'OK'
+                           and not any(counts[key] for key in counts if key != 'skipped')
+                           and len(skipped) == counts['skipped']
+                           and all(item['allowed'] for item in skipped))
+              return {'tests_run': int(ran[1]) if ran else None, 'counts': counts,
+                      'skipped': skipped, 'problems': problems, 'acceptance_valid': valid}
+
+          root = Path.cwd()
+          result_dir = Path(os.environ['RUNNER_TEMP']) / 'continuity-results'
+          result_dir.mkdir(mode=0o700, exist_ok=False)
+          report = {
+              'format': 'continuity-ci-summary-v1', 'state': 'incomplete',
+              'runner_label': os.environ['CI_RUNNER_LABEL'],
+              'python_requested': os.environ['CI_PYTHON_REQUESTED'],
+              'system': platform.system(), 'machine': platform.machine(),
+              'python': platform.python_version(), 'sqlite': sqlite3.sqlite_version,
+              'image_os': os.environ.get('ImageOS', 'unavailable'),
+              'image_version': os.environ.get('ImageVersion', 'unavailable'),
+              'commit': os.environ['GITHUB_SHA'], 'run_id': os.environ['GITHUB_RUN_ID'],
+              'attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'capabilities': {name: hasattr(os, name) for name in ('mkfifo', 'symlink', 'O_NONBLOCK', 'O_BINARY')},
+              'source_sha256': {}, 'phases': {},
+              'real_model_handoff_verified': False, 'publication_authorized': False,
+          }
+
+          def save_report():
+              (result_dir / 'summary.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+
+          # Do not forward Actions tokens, model keys, user config, or arbitrary env to children.
+          child_env = {key: os.environ[key] for key in ('PATH', 'SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT')
+                       if key in os.environ}
+          child_env.update(PYTHONDONTWRITEBYTECODE='1', PYTHONUTF8='1', PYTHONIOENCODING='utf-8',
+                           PIP_DISABLE_PIP_VERSION_CHECK='1', PIP_NO_INPUT='1', PIP_NO_CACHE_DIR='1',
+                           PIP_CONFIG_FILE=os.devnull)
+
+          def run_phase(name, arguments, timeout):
+              started = time.monotonic()
+              phase = report['phases'][name] = {'state': 'running'}
+              save_report()
+              try:
+                  completed = subprocess.run([sys.executable, '-B', *arguments], cwd=root,
+                      env=child_env, capture_output=True, text=True, encoding='utf-8',
+                      errors='replace', timeout=timeout)
+                  phase.update(state='passed' if completed.returncode == 0 else 'failed',
+                               exit_code=completed.returncode)
+                  return completed
+              except subprocess.TimeoutExpired:
+                  phase.update(state='timeout', exit_code=None)
+                  return None
+              finally:
+                  phase['seconds'] = round(time.monotonic() - started, 2)
+                  save_report()
+
+          try:
+              for path in sorted(set(root.glob('scripts/*.py')) | set(root.glob('tests/test*.py')) |
+                                 set(root.glob('pyproject.toml')) |
+                                 {root / 'requirements-mcp.txt', root / 'release-files.json'}):
+                  report['source_sha256'][path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+              with tempfile.TemporaryDirectory(prefix='continuity-ci-', dir=os.environ['RUNNER_TEMP']) as scratch:
+                  child_env.update({key: scratch for key in ('TMPDIR', 'TMP', 'TEMP')})
+                  run_phase('dependencies', ['-m', 'pip', '--isolated', 'install', '--no-input',
+                      '--disable-pip-version-check', '--no-cache-dir', '--retries', '0', '--timeout', '20',
+                      '--index-url', 'https://pypi.org/simple',
+                      '-r', 'requirements-mcp.txt', 'setuptools>=77.0.3,<85', 'wheel>=0.45,<0.49'], 150)
+                  if report['phases']['dependencies']['state'] == 'passed':
+                      preflight = run_phase('sdk_and_builder', ['-c',
+                          'from mcp import Client, StdioServerParameters; from mcp.server import MCPServer; '
+                          'import importlib.util, importlib.metadata as m, json; '
+                          'assert all(importlib.util.find_spec(n) for n in ("pip", "setuptools", "wheel")); '
+                          'print(json.dumps({n:m.version(n) for n in ("mcp", "pip", "setuptools", "wheel")}))'], 15)
+                      if preflight and preflight.returncode == 0:
+                          versions = json.loads(preflight.stdout)
+                          if set(versions) != {'mcp', 'pip', 'setuptools', 'wheel'} or not all(
+                                  isinstance(v, str) and re.fullmatch(r'[A-Za-z0-9.+-]{1,80}', v) for v in versions.values()):
+                              raise ValueError('Invalid dependency metadata')
+                          report['dependencies'] = versions
+                          tests = run_phase('unittest', ['-m', 'unittest', 'discover', '-s', 'tests', '-v'], 300)
+                          if tests is not None:
+                              report['unittest'] = test_summary(tests.stderr, os.name == 'nt')
+                              if not report['unittest']['acceptance_valid']:
+                                  report['phases']['unittest']['state'] = 'failed'
+                  # Smoke runs even after an ordinary dependency or unittest failure.
+                  smoke = run_phase('smoke', [str(root / 'scripts/smoke_demo.py'),
+                                             '--output', str(Path(scratch) / 'new-demo')], 45)
+                  if smoke is not None and smoke.returncode == 0:
+                      receipt = json.loads(smoke.stdout)
+                      if receipt.get('state') != 'protocol_demo_passed' or receipt.get('real_model_handoff_verified') is not False:
+                          report['phases']['smoke']['state'] = 'failed'
+                      else:
+                          report['smoke'] = {'state': 'protocol_demo_passed', 'real_model_handoff_verified': False}
+              required = ('dependencies', 'sdk_and_builder', 'unittest', 'smoke')
+              passed = all(report['phases'].get(name, {}).get('state') == 'passed' for name in required)
+              report['state'] = ('passed_with_platform_skips' if report.get('unittest', {}).get('skipped')
+                                 else 'passed') if passed else 'failed'
+          except Exception as exc:
+              # No exception message or traceback: either can contain fixture content or paths.
+              report.update(state='failed', infrastructure_error=type(exc).__name__)
+          finally:
+              save_report()
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+                  summary.write('## Synthetic platform validation\n\n```json\n' + json.dumps(report, indent=2) + '\n```\n')
+              print('Synthetic validation: ' + report['state'] + '; see the sanitized summary (no raw logs).')
+          sys.exit(0 if report['state'] in ('passed', 'passed_with_platform_skips') else 1)
+
+      - name: Retain only the sanitized platform/test summary
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verify-${{ matrix.os }}-py${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/continuity-results/summary.json
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+          overwrite: false

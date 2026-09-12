@@ -68,12 +68,28 @@ python3 -B -m unittest discover -s tests -v
 
 For MCP tests install the optional dependency first, as described in [MCP setup](../adapters/mcp.md). Without it, MCP cases skip and provide no MCP evidence. Package manifests fix which files were included; source-directory tests must not be attributed to an older archive.
 
+### Alpha.3 installation and recovery regression
+
+On 2026-09-12, the implementation thread ran **65 tests / 32.674 seconds / OK / no skips** on macOS arm64, Python 3.12.14, MCP SDK 2.2.0. This was the source tree, not yet an extracted release archive. The previous 52 cases are retained; one installation-lifecycle case and 12 independently authored recovery cases were added.
+
+The installer case builds from the distribution allowlist, installs a wheel into a fresh virtual environment, invokes commands from outside the source directory, runs the synthetic demo, checks the clear optional-MCP-dependency failure, and uninstalls without deleting the project database. Before the fix it exposed an actual package-relative import failure in the MCP entry point. An installable command is not automatic registration with every assistant.
+
+The independent recovery cases exercise truncated/corrupt storage rejection, incomplete and relocated stopped-write backups, write/read permission failures, and two observed SIGKILL windows. Both termination experiments actually killed a child process and reopened the project; they did not simulate a kill by simply closing a connection. Tests accept only a complete old or complete new revision at the journal window; a commit observed during partial stdout remains recoverable and a stale repeat save is rejected. This is not a power-loss or network-storage durability guarantee.
+
+Frozen source for this 65-case regression:
+
+- CLI: `74fe600e12d1e256927ed670dfb4499f908ce3a49907615a97c48a40a30a853f`
+- MCP: `740a31e11d33ba1278a178e03eae136559fb1593f19a64485b270338bfa6697a`
+- Recovery test: `3d9ee3ab4de8bf8cdf4ec359b01c4822dd186227d1353841740a9ead5b61f46d`
+
+The independent reviewer first ran its 12 cases on the earlier alpha.2 CLI; the implementation thread subsequently reran all 65 on the hashes above. Neither run is a fresh model-behavior trial. [Private cross-platform CI design and exact skip policy](platform-validation.md) records the planned hosted-runner checks separately; no unrun platform is marked passed.
+
 ## Still unverified
 
 - A full real-agent save→handoff→different vendor→continue→save cycle.
 - Other MCP hosts, automatic Skill discovery, Windows/Linux physical machines.
 - Competitor outcome comparisons, external-user onboarding, retention, or token savings.
-- Abrupt power loss, full-disk behavior, corruption recovery, hostile same-user filesystem races, remote authentication and synchronization.
+- Abrupt power loss, full-disk behavior, Windows ACL/crash recovery, hostile same-user filesystem races, remote authentication and synchronization. The bounded macOS corruption/backup/SIGKILL cases above are tested, not universal recovery.
 - Public release and marketplace/PyPI installation.
 
 Only promote a row when its specific test has a result. A protocol pass does not fill a model-behavior row; a real-model result does not authorize release or prove overall superiority.
