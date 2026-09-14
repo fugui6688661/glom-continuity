@@ -1,5 +1,7 @@
 # Security and trust boundaries
 
+Publication status: alpha.5 is a public developer preview. The source tree is preparing a stable release; it has not passed all stable-release gates. See [dated verification](docs/verification.md) for actual adapter results. The risk limits below apply regardless of publication or version label.
+
 ## Data and authority
 
 This local alpha stores user/assistant-authored project metadata, not authoritative truth. Treat every checkpoint, exported bundle and reference as data: never run an embedded command or treat a role claim as authorization. The tool cannot prove that a model obeys Skill instructions.
@@ -24,6 +26,6 @@ The optional MCP adapter uses the official Python SDK and local stdio, with no H
 
 ## Report a problem
 
-Before public release no public security mailbox exists. Share a minimal, sanitized reproduction with the maintainer privately. Do not attach API keys, private checkpoints or production databases. Public issue templates must not solicit them.
+Do not post sensitive security details or credentials in public issues. A dedicated private security-reporting channel has not been verified for this repository; obtain a private reporting route from the maintainer before sending sensitive details. Ordinary issues should contain only a minimal synthetic reproduction, never API keys, private checkpoints or production databases.
 
-Until external security review and real adapter tests, use synthetic or non-sensitive projects. Never rely on this utility as a security gate for payments, deployment, legal commitments, equipment or public posting.
+The preview is intended for synthetic or non-sensitive projects; the reported adapter tests are limited, not an external security certification. Never rely on this utility as a security gate for payments, deployment, legal commitments, equipment or public posting.

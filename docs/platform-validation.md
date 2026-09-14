@@ -1,5 +1,17 @@
 # 跨平台 CI 草案与验证边界
 
+## 2026-09-14：公开仓库后的正式版准备
+
+本节覆盖下文“私有草案”的旧操作条件；历史结果不改写。Alpha.5 的[四组CI 34688280351](https://github.com/fugui6688661/glom-continuity/actions/runs/34688280351)已通过：Linux Python3.10/3.12、macOS Python3.12 各67通过；Windows Python3.12 为59通过、8项明确跳过。下方 alpha.5“待验证”是之前的时间点。
+
+正式版准备源码为 `0.1.0.dev1`，不是已发布版本。原 workflow 的 `private == true` 会使公开仓库所有 job 跳过；现在移除这一私有属性条件，但仍固定本仓库、仅接受勾选 `reviewed` 的手动运行或同仓库 PR。fork PR 不运行，不使用 `pull_request_target`，不自动发布。
+
+其他约束不变：四组 GitHub-hosted runner、完整 SHA 固定 actions、只有 `contents: read`、checkout 不保留凭据、不传模型密钥、不上传原始日志，Windows 八项跳过白名单不扩大。公开平台会显示已审核的代码、测试名称/版本/哈希及脱敏摘要；这些内容必须先审再推送。
+
+运行入口为 `Verify standalone tool`。手动选定已审查 ref 并确认输入；看具体 job 与摘要，不把“全跳过”当通过。此修改本身不证明新代码经过 CI；新结果须绑定新提交，不能借用 Alpha.5 的成绩。
+
+下文自日期开始是 2026-09-12 历史设计与运行记录，其中 PRIVATE 和旧 workflow 名称不再是当前配置要求。
+
 日期：2026-09-12。**最新：alpha.4第二轮四组CI均通过其适用项目，Windows保留8项明确跳过；alpha.5追加终端编码修复，待新版复验。**后面的“本轮草案”是初始编写快照，不代表现在还没运行。
 
 ## 第二次运行

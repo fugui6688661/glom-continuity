@@ -2,7 +2,7 @@
 
 目标是所有具备可用接入通道的 Agent，而不是固定两家产品。先读[通用接入合同](agent-neutral-contract.md)，按命令行、Skill、文件、MCP/API等能力选择接入方式；Codex与Harness是首批样例。`recipient`是协作标签，不存在按品牌限制接力对象的名单。
 
-当前提供文件/CLI接入模板与[可选本地MCP stdio适配](mcp.md)。模板随包提供不代表已安装。MCP已在一个真实Codex会话中恢复合成项目并继续一步，未证明跨厂商全程接力；准确范围见[实测记录](../docs/verification.md)。没有HTTP远端服务、模型代理、自启动后台服务或自动安装器。
+当前提供文件/CLI接入模板与[可选本地MCP stdio适配](mcp.md)。模板随包提供不代表已安装。MCP已在一个真实Codex会话中恢复合成项目并继续一步；此外，9月14日已有一轮指定版本 Codex→DSH→Codex 的本地命令接力记录，不能将它计为 DSH MCP 也通过。准确范围见[实测记录](../docs/verification.md)。没有HTTP远端服务、模型代理、自启动后台服务或自动安装器。
 
 先读 [版本支持矩阵](support-matrix.md)，再看 [核查结果](../qa/adapter-readiness.md)。具体命令证据见 [本机核查记录](local-command-evidence.md)。
 

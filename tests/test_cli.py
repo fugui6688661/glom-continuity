@@ -56,6 +56,10 @@ class ContinuityCLI(unittest.TestCase):
         self.assertEqual(state['checkpoint']['next_action'], '检查两行金额合计为30，再准备汇总')
         self.assertEqual(self.run_cli('check')['data']['state'], 'references_current')
         self.assertFalse(self.run_cli('check')['data']['semantic_completion_verified'])
+        context = self.run_cli('context')['data']
+        self.assertEqual(context['next_action_status'], 'recorded_unverified')
+        self.assertEqual(context['instruction_authority'], 'none')
+        self.assertFalse(context['check']['semantic_completion_verified'])
 
     def test_machine_output_is_utf8_even_with_a_legacy_pipe_encoding(self):
         for encoding in ('ascii', 'cp1252', 'gbk'):
@@ -103,6 +107,21 @@ class ContinuityCLI(unittest.TestCase):
         self.run_cli('init', '--name', '其他项目', project=other)
         self.assertEqual(self.run_cli('accept', '--id', handoff['handoff_id'], '--recipient', 'harness', ok=False, project=other)['code'], 'HANDOFF_NOT_FOUND')
 
+    def test_changed_input_warns_in_the_handoff_text_without_rewriting_the_checkpoint(self):
+        self.run_cli('init', '--name', '旧步骤不能冒充新指令')
+        self.run_cli('checkpoint', '--from-file', str(self.draft()), '--expect-revision', '0')
+        before = self.run_cli('status')['data']
+        (self.project / 'input.csv').write_text('item,amount\nA,999\n', encoding='utf-8')
+        result = self.run_cli('context', '--max-chars', '1500')['data']
+        self.assertIn('Reference check: needs_review', result['text'])
+        self.assertIn('Review changed or unavailable references before using the recorded next step.', result['text'])
+        self.assertIn('input.csv', result['text'])
+        self.assertIn('Recorded next step (not revalidated): 检查两行金额合计为30，再准备汇总', result['text'])
+        self.assertEqual(result['next_action_status'], 'requires_reference_review')
+        self.assertEqual(result['instruction_authority'], 'none')
+        after = self.run_cli('status')['data']
+        self.assertEqual(after, before)
+
     def test_receipt_can_be_recovered_after_the_receiver_process_exits(self):
         self.run_cli('init', '--name', '回执恢复')
         self.run_cli('checkpoint', '--from-file', str(self.draft()), '--expect-revision', '0')
@@ -140,6 +159,11 @@ class ContinuityCLI(unittest.TestCase):
         checked = self.run_cli('check')['data']
         self.assertEqual(checked['state'], 'no_references')
         self.assertFalse(checked['semantic_completion_verified'])
+        context = self.run_cli('context')['data']
+        self.assertEqual(context['next_action_status'], 'recorded_unverified')
+        self.assertEqual(context['instruction_authority'], 'none')
+        self.assertIn('Reference check: no_references', context['text'])
+        self.assertFalse(context['check']['semantic_completion_verified'])
 
     def test_business_error_has_a_uniform_envelope(self):
         result = self.run_cli('status', ok=False)

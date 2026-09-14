@@ -46,7 +46,7 @@ class Installation(unittest.TestCase):
             self.command([sys.executable, '-m', 'pip', '--python', str(python), 'install',
                           '--no-index', '--no-deps', str(artifacts[0])], base)
             version = self.command([str(cli), '--version'], base).stdout.strip()
-            self.assertRegex(version, r'^0\.1\.0(?:-alpha\.[0-9]+|a[0-9]+)$')
+            self.assertRegex(version, r'^0\.1\.0(?:(?:-alpha\.|a|\.dev|rc)[0-9]+)?$')
             self.assertEqual(self.command([str(python), '-m', 'glom_continuity', '--version'], base).stdout.strip(), version)
             project = base / '中文 project'
             project.mkdir()

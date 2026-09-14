@@ -88,6 +88,15 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
         identifier = offered['data']['handoff_id']
         (self.project / 'input.txt').write_text('changed', encoding='utf-8')
         async with self.client(writable=True) as client:
+            context = await client.call_tool('continuity_context', {})
+            self.assertFalse(context.is_error)
+            state = context.structured_content['data']
+            self.assertEqual(state['next_action_status'], 'requires_reference_review')
+            self.assertEqual(state['instruction_authority'], 'none')
+            self.assertIn('Reference check: needs_review', state['text'])
+            self.assertIn('input.txt', state['text'])
+            self.assertIn('Recorded next step (not revalidated): Read input.txt', state['text'])
+            self.assertEqual(json.loads(context.content[0].text), context.structured_content)
             rejected = await client.call_tool('continuity_accept', {'id': identifier, 'recipient': 'reviewer'})
             self.assertTrue(rejected.is_error)
             self.assertEqual(rejected.structured_content['code'], 'EVIDENCE_CHANGED')

@@ -8,6 +8,8 @@
 
 [English](README.en.md) · [MCP 接入](adapters/mcp.md) · [实测记录](docs/verification.md) · [安全与数据](SECURITY.md)
 
+源码正在准备正式版（内部版本 `0.1.0.dev1`），尚未发布。下方下载链接仍是不可变的 Alpha.5，不含正在验证的改动；不会把旧下载包直接改名为正式版。
+
 **0.1.0-alpha.5 · 开发者预览版，非稳定正式版。**本地 CLI、可选 MCP 和 Python 安装入口可供试验；已完成一次真实的 Codex → DeepSeek Harness → 新 Codex 合成项目恢复接力。它不等于所有助手都已兼容，也不证明比现有工具更省 token。
 
 [下载预览版](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) · [安装说明](INSTALL.md) · [提交问题](https://github.com/fugui6688661/glom-continuity/issues)
@@ -36,7 +38,7 @@ Windows 命令可用 `py -3` 替代 `python3`；已在 GitHub Windows runner 跑
 
 | 你的助手具备什么 | 接入方式 | 已核验到哪一步 |
 |---|---|---|
-| 本地命令执行与项目访问 | 便携 CLI；可配通用 Skill | 本机公开接口测试通过 |
+| 本地命令执行与项目访问 | 便携 CLI；可配通用 Skill | 协议检查；维护者记录了一轮指定版本 Codex→DSH→Codex 接力，见实测记录 |
 | 本地 MCP stdio | [可选适配器](adapters/mcp.md)，默认只读 | 协议用例与一个 Codex 0.153.4 真实会话；其他宿主待验 |
 | 只能读文件或聊天 | 提供经过审阅的 JSON 快照 | 人工交接，不做实时校验或自动回写 |
 | 远端 HTTP / 其他设备 | 后续认证与同步适配 | 尚未实现，不能将本机服务直接暴露出去 |

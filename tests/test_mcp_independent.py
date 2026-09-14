@@ -618,6 +618,27 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
                     fresh_cli_revision=1)
         self.assertTrue(status_returned, "Repeated nonregular draft reads exhaust workers and stall status; no DB deletion was needed to recover")
 
+    async def test_22_actual_wire_context_fits_its_exact_budget_before_and_after_drift(self):
+        # Maintainer regression from the independent dev1 raw-stdio review.
+        self.seed()
+        before = self.cli('status')
+        async with self.wire() as peer:
+            for state in ('references_current', 'needs_review'):
+                if state == 'needs_review':
+                    self.input.write_bytes(b'CHANGED SYNTHETIC INPUT')
+                frame, _ = await peer.call('continuity_context', {'max_chars': 6000})
+                result = frame['result']
+                self.assertFalse(result.get('isError', False), result)
+                exact_size = len(json.dumps(result, ensure_ascii=False, separators=(',', ':'))) + 1
+                exact, _ = await peer.call('continuity_context', {'max_chars': exact_size})
+                self.assertFalse(exact['result'].get('isError', False), exact)
+                self.assertEqual(exact['result']['structuredContent']['data']['check']['state'], state)
+                self.assertEqual(json.loads(exact['result']['content'][0]['text']), exact['result']['structuredContent'])
+                small, _ = await peer.call('continuity_context', {'max_chars': exact_size - 1})
+                self.assertTrue(small['result']['isError'])
+                self.assertEqual(small['result']['structuredContent']['code'], 'BUDGET_TOO_SMALL')
+                self.assertEqual(self.cli('status'), before)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

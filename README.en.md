@@ -1,5 +1,7 @@
 # glom-continuity
 
+This source tree is preparing a stable release (`0.1.0.dev1`, unpublished). Download links below still point to the immutable alpha.5 assets, not these unverified development changes. The preview will not be relabeled as a stable release.
+
 **Keep the project. Change the assistant.**
 
 A local checkpoint and handoff tool for AI-assisted projects. Save goals, decisions, constraints, and the next action. Check whether referenced files have changed before accepting a handoff.
@@ -34,7 +36,7 @@ Windows users can substitute `py -3`. Protocol and installation checks ran on a 
 
 | Host capability | Route | Evidence so far |
 |---|---|---|
-| Authorized local commands and project access | Portable CLI, optionally with the generic Skill | Local public-interface tests |
+| Authorized local commands and project access | Portable CLI, optionally with the generic Skill | Protocol tests and one maintainer-reported, version-specific Codex→DSH→Codex relay; see verification |
 | Local MCP stdio | [Optional adapter](adapters/mcp.md), read-only by default | Protocol tests and one live Codex 0.153.4 session; other hosts unverified |
 | File upload or text only | Reviewed JSON snapshot | Manual handoff, not live checking or database writes |
 | Remote HTTP / another device | Future authenticated bridge | Not implemented |
