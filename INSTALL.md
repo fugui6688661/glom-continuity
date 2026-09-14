@@ -2,7 +2,9 @@
 
 这是命令行工具与可选的助手连接器，不是聊天App，也不会自动记住所有聊天。
 先准备Python 3.10或更新版本。工具、示例项目与自己的工作资料分开存放。
-当前候选尚未公开上架；请使用维护者提供的固定ZIP或wheel，不要从同名陌生软件下载安装。
+本次提供开发者预览版，不是稳定生产版本。请从[本仓库的 alpha.5 发布页](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5)下载 `glom-continuity-0.1.0-alpha.5.zip`，或需要安装命令时下载对应 wheel。不要从同名陌生软件下载安装；目前没有 PyPI 或应用商店版本。
+
+下载页同时提供 `SHA256SUMS`。Mac/Linux 可把它与 ZIP、wheel 放在同一目录，运行 `shasum -a 256 -c SHA256SUMS`（校验全部条目须下载两个文件）。Windows 使用 `Get-FileHash 文件名 -Algorithm SHA256` 与清单逐项比较。哈希用于检查下载完整性，不是发布者数字签名。
 
 ## 先看效果：不装依赖，不用API
 

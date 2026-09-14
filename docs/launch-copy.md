@@ -16,7 +16,7 @@ glom-continuity 把这些信息保存在你的项目里。新会话读回目标�
 
 可以直接用本地命令，也可以接入支持本地 MCP 的助手。工具本身不调用模型、不上传项目，不要求你更换现有助手。连接云端助手时，收到的上下文仍受该服务的数据处理规则影响。
 
-目前为早期候选版：已有本机协议测试，以及一个真实 Codex 新会话的恢复与文件产出实验。完整跨厂商接力和其他系统还在验证，不把支持标准接口说成所有产品都已兼容。
+目前为开发者预览：已有本机协议测试、有限跨平台 CI，以及一次真实 Codex → DeepSeek Harness → 新 Codex 的合成项目恢复接力。早期失败未隐去；外部真人试用和完整效果对照仍未完成。不把支持标准接口说成所有产品都已兼容。
 
 先用合成项目试一次：保存、恢复、看到变化被拒绝，再决定是否用于自己的工作。
 
@@ -30,7 +30,7 @@ glom-continuity stores that working state in your project. A fresh session can r
 
 Use the portable CLI or connect a local MCP-capable assistant. The utility makes no model calls or uploads. A connected cloud assistant may still send recovered context to its provider.
 
-This is an early candidate with local protocol tests and one live Codex recovery-and-output experiment. Full cross-vendor handoff and other operating systems are still being verified. Supporting an interface is not the same as testing every client.
+This developer preview has local protocol tests, bounded hosted CI and a maintainer-observed synthetic Codex → DeepSeek Harness → fresh Codex recovery. Earlier failed attempts are retained. External human trials and a complete matched-model comparison are still open. Supporting an interface is not the same as testing every client.
 
 Start with a synthetic project. Save it, recover it, and see what happens when its inputs change.
 
@@ -48,4 +48,4 @@ Earlier alpha.2 work retained:
 - Reworked the Chinese/English first-run guide, compatibility evidence and removal instructions.
 - Preserved old archives; do not substitute this build's results for their contents.
 
-See [verification](verification.md) for the tested environment, source hashes, earlier live-model scope and outstanding gates. The owner has approved the repository target `fugui6688661/glom-continuity` and the [MIT License](../LICENSE). The remaining release gates and an actual public download must be verified before this draft becomes a release announcement. Never turn outstanding items into checked boxes merely by publishing this text.
+See [verification](verification.md) for the tested environment, source hashes and outstanding research. The owner has approved the repository target `fugui6688661/glom-continuity` and the [MIT License](../LICENSE). The preview scope is explicit in [PROVENANCE](../PROVENANCE.md). Verify the actual public download before using this text as an announcement; never turn outstanding items into checked boxes merely by publishing it.

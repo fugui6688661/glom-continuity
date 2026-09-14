@@ -1,6 +1,22 @@
 # Verification record / 实测记录
 
-Date: 2026-09-12. This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims.
+This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
+
+## Current alpha.5 evidence — 2026-09-14
+
+The candidate's executable files are unchanged from commit `c3b9e4f75b530b9e061415672c503fbdf0a53253`. Later repository documentation is not a new model trial or a silently replaced archive.
+
+- A maintainer-observed, synthetic Codex → DeepSeek Harness → fresh Codex recovery completed on macOS. B wrote an order summary, saved a new checkpoint and handed it back; a fresh A accepted and read the result. A separate AI reviewer recomputed the arithmetic. The known subtotal was 74.20; missing quantity, currency and tax remained unresolved, and original inputs stayed unchanged. Earlier startup/transport failures were retained: this was successful recovery, not an uninterrupted first attempt.
+- Maintainer-recorded clients: Codex 0.154.0-alpha.6.2 / gpt-6-astra low; DSH 0.1.5-rc.1 / provider alias `deepseek-flash`, low. This does not attest a provider's hidden model revision. Raw local session logs are private, so this is a reported experiment, not publicly replayable client attestation.
+- [CI run 34688280351](https://github.com/fugui6688661/glom-continuity/actions/runs/34688280351) tested that exact commit: Linux Python 3.10/3.12 and macOS Python 3.12 each passed 67 cases; Windows Python 3.12 passed 59 and explicitly skipped eight POSIX-only cases. All four also passed the synthetic smoke. No claim of Windows ACL, physical power-loss or all-workstation coverage.
+- Independent AI review checked the fixed ZIP's 40 shipped files and reachable Git history against the distribution allowlist; 41 standard-library tests passed in a fresh local environment. Wheel RECORD entries and GitHub-redownloaded asset hashes were checked separately. AI review is not external human first use.
+- Offline comparison exercised manual Markdown, this CLI and a fixed agent-handoff-skill revision with normal and changed-input cases. That measured protocol behavior only, not model quality, reduced re-explanation or token savings.
+
+**Open:** external human first use, a complete matched-model comparison, ordinary Windows/Linux device experience, other MCP clients and automatic cross-computer synchronization. One real handoff retained stale prose in `next_action`; the receiver recovered using the current receipt and protocol. The tool cannot certify the truth or freshness of every saved sentence.
+
+Use the [named release assets](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) and their SHA256SUMS. Public availability, when verified, does not promote any open test above to a pass.
+
+## Historical record — 2026-09-12
 
 ## Real Codex trial: one resumed task
 

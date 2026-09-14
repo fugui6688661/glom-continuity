@@ -8,7 +8,11 @@ A local checkpoint and handoff tool for AI-assisted projects. Save goals, decisi
 
 [中文](README.md) · [MCP setup](adapters/mcp.md) · [Verification](docs/verification.md) · [Security](SECURITY.md)
 
-**0.1.0-alpha.5 local candidate; not publicly released.** The CLI, optional MCP adapter and Python package entry points are implemented. A live Codex session recovered a synthetic project and produced a file on an earlier source revision. It does not prove a live two-model handoff on this candidate or universal compatibility.
+**0.1.0-alpha.5 · Developer preview, not a stable release.** The local CLI, optional MCP adapter and Python entry points are available for experimentation. A real synthetic Codex → DeepSeek Harness → fresh Codex recovery has been completed. This does not establish universal host compatibility, competitive superiority or token savings.
+
+[Download preview](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) · [Install](INSTALL.md) · [Report an issue](https://github.com/fugui6688661/glom-continuity/issues)
+
+Use the release's named ZIP asset for first use, not GitHub's automatic Source code archive. The asset preserves the tested candidate bytes. Its publication-status prose is a packaging-time snapshot; see the [release notes](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) and [verification record](docs/verification.md) for later evidence and limitations.
 
 See [installation and first use](INSTALL.md) for the portable demo and local wheel installation. Installing the base wheel does not call a model; a cloud assistant still applies its own pricing and privacy rules.
 
@@ -24,7 +28,7 @@ python3 -B scripts/continuity.py --project ./continuity-demo context --max-chars
 
 The CLI needs no dependencies or model calls. The demo generates synthetic inputs only. Use a new output directory: an existing one is never overwritten. Read `continuity-demo/演示结果.md`, `events.json`, and `handoff-review.json` for the recovered state, changed-input rejection, and duplicate-acceptance rejection. **This demo replays the CLI protocol, not two live models.** The separate Codex trial is documented in [verification](docs/verification.md).
 
-Windows users can substitute `py -3`; Windows operation has not been verified on a real device. No PyPI/Homebrew installation is advertised before a package exists there.
+Windows users can substitute `py -3`. Protocol and installation checks ran on a GitHub-hosted Windows runner; that is not validation of every physical Windows workstation. No PyPI/Homebrew installation is advertised before a package exists there.
 
 ## Choose an interface
 
@@ -95,7 +99,7 @@ MCP tests explicitly skip without the optional SDK. A skipped test is not a veri
 
 This is not a scheduler, semantic memory model, sandbox, authenticated identity system, encrypted store, remote sync service, or completion authority. Hash equality is not semantic correctness. Same OS-user filesystem access is trusted. [Security](SECURITY.md)
 
-Cross-vendor live handoff, Windows/Linux device checks, comparative outcomes, external trials, and public release remain unverified. No token-saving, market-success, or competitor-superiority claim is made. [Verification](docs/verification.md) · [Provenance and license](PROVENANCE.md)
+The completed live handoff and hosted CI have bounded evidence in the [verification record](docs/verification.md). External human first use, complete matched-model comparison and ordinary Windows/Linux device experience remain unverified. No token-saving, market-success, or competitor-superiority claim is made. [Preview scope and license](PROVENANCE.md)
 
 ## License
 

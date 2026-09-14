@@ -8,7 +8,11 @@
 
 [English](README.en.md) · [MCP 接入](adapters/mcp.md) · [实测记录](docs/verification.md) · [安全与数据](SECURITY.md)
 
-**当前为 0.1.0-alpha.5 本地候选，尚未公开发布。**CLI、可选 MCP 与标准Python安装入口已实现；早期版本有一个真实 Codex 会话通过 MCP 恢复合成项目并产出文件。这不是当前新版双模型接力通过，也不是“所有 Agent 已验证”。
+**0.1.0-alpha.5 · 开发者预览版，非稳定正式版。**本地 CLI、可选 MCP 和 Python 安装入口可供试验；已完成一次真实的 Codex → DeepSeek Harness → 新 Codex 合成项目恢复接力。它不等于所有助手都已兼容，也不证明比现有工具更省 token。
+
+[下载预览版](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) · [安装说明](INSTALL.md) · [提交问题](https://github.com/fugui6688661/glom-continuity/issues)
+
+首次使用请下载该 release 的 ZIP 附件，而不是 GitHub 自动生成的 Source code。附件保持已验收候选的原字节；其中的发布状态文字是打包时快照，后续验证与限制以[发布说明](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5)和[实测记录](docs/verification.md)为准。
 
 第一次使用请看[安装与试用](INSTALL.md)：从虚构案例开始，再接入自己的助手。基础工具不需要模型API；使用云端助手时仍遵循该助手的计费与隐私规则。
 
@@ -26,7 +30,7 @@ python3 -B scripts/continuity.py --project ./continuity-demo context --max-chars
 
 打开生成的 `continuity-demo/演示结果.md`：可以看到恢复的项目、文件改变时被拒绝的交接，以及重复领取的拒绝结果。`events.json` 保留本次事件，`handoff-review.json` 是审阅快照。**这是 CLI 协议回放，不是两个模型在工作。**真实 Codex 的单独试验见[实测记录](docs/verification.md)。
 
-Windows 命令可用 `py -3` 替代 `python3`；目前尚无 Windows 实机通过记录。不提供尚未上架的 `pip install glom-continuity` 命令。
+Windows 命令可用 `py -3` 替代 `python3`；已在 GitHub Windows runner 跑过协议和安装检查，不代表所有 Windows 实机验证。不提供尚未上架的 `pip install glom-continuity` 命令。
 
 ## 怎么接入你的助手
 
@@ -119,7 +123,7 @@ python3 -B -m unittest discover -s tests -v
 
 文件指纹一致不等于内容正确。这里没有自动调度、语义记忆推理、身份认证、加密存储、远端同步或外部动作“只执行一次”的保证。相同系统用户有磁盘访问权；这是协作工具，不是抵抗恶意同机程序的沙箱。
 
-真实跨厂商接力、跨系统实机、公平效果对照和外部试用仍须完成。未测量 token 节省或返工减少，不宣称优于竞品。许可及公开发行条件见[来源与许可](PROVENANCE.md)；开发顺序见[实施表](IMPLEMENTATION.md)。
+已完成的真实接力和跨系统 CI 范围见[实测记录](docs/verification.md)。外部真人试用、完整公平效果对照和普通跨系统实机体验仍待验证。未测量 token 节省或返工减少，不宣称优于竞品。许可与预览版发行边界见[来源与许可](PROVENANCE.md)；开发顺序见[实施表](IMPLEMENTATION.md)。
 
 ## 许可
 
