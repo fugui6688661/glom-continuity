@@ -1,5 +1,9 @@
 # 跨平台 CI 草案与验证边界
 
+## 2026-09-15：当前开发提交已完成CI
+
+`fc34543450613cc43f0ff014789b6dbad0bddce9` 的四组CI已完成：Linux两组和macOS各69通过，Windows61通过、8项明确跳过、无失败。准确范围及后续说明变化见[实测记录](verification.md)。下方旧“待运行”保留其时点，不代表当前仍未运行；也不能拿这次结果认证以后更改的程序。
+
 ## 2026-09-14：公开仓库后的正式版准备
 
 本节覆盖下文“私有草案”的旧操作条件；历史结果不改写。Alpha.5 的[四组CI 34688280351](https://github.com/fugui6688661/glom-continuity/actions/runs/34688280351)已通过：Linux Python3.10/3.12、macOS Python3.12 各67通过；Windows Python3.12 为59通过、8项明确跳过。下方 alpha.5“待验证”是之前的时间点。

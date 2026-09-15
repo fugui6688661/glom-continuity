@@ -2,6 +2,30 @@
 
 This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
 
+## Stable preparation — 2026-09-15 (unpublished)
+
+Development runtime `0.1.0.dev1` was fixed at `fc34543450613cc43f0ff014789b6dbad0bddce9`. The public download remains alpha.5. Later onboarding/documentation changes do not rewrite the fixed experiment or certify a stable release.
+
+[CI run 34821893397](https://github.com/fugui6688661/glom-continuity/actions/runs/34821893397) tested that development commit: Linux Python 3.10/3.12 and macOS Python 3.12 each passed 69 tests, no skips; Windows Python 3.12 passed 61, with eight declared POSIX-only skips and no failures. All four dependency, preflight, test and smoke stages exited successfully. Independent local installation review also passed four delivery/installation cases and checked 79 packaged documentation links. Those are bounded automated checks, not human first use.
+
+### Same-model pilot: incomplete, no winner
+
+The pilot used manual Markdown, `agent-handoff-skill` at `ef01fa9db0ea0aab19141954644a1049da4da795`, and this development CLI. All used fresh DSH 0.1.5-rc.1 sdk-minimal sessions with official-provider alias `deepseek-flash`, low reasoning, synthetic order inputs, fixture-scoped local tools and no shell/network tools. Alias is not proof of the provider's hidden model revision. The fixture invoked real public CLI commands; this is not validation of the shipped MCP adapter in DSH.
+
+Each session allowed at most 100,000 cumulative input tokens, 4,000 output tokens, 16 HTTP requests, 30 tool calls and 600 seconds, with no retries. The first segment stopped after manual D; the owner then explicitly authorized the previously unused slots. Only the outer stopping policy changed: failures stopped dependent sessions, not an unrelated arm. Prompts, data, runtime and per-session limits stayed frozen. The two segments and protocol deviations are retained, not presented as an unchanged or statistically conclusive benchmark.
+
+| Arm | Actually attempted | Observed result | Not run |
+| --- | --- | --- | --- |
+| Manual Markdown | A, B, fresh A-return, changed-input D | Normal subtotal 74.20 and missing facts preserved; fresh A read the saved output. D saved a change/review report, then hit the 4,000-output cap before closeout. A had calculated totals early, departing from the planned save-only role. | None |
+| agent-handoff-skill | A | Bootstrap ran, but the session exhausted its output allowance before completing the task-specific handoff. | B, A-return, D |
+| Continuity CLI | A | Initialization succeeded. The assistant requested context before saving any checkpoint; the CLI correctly returned `NO_CHECKPOINT`. The fixture stopped further requests. | B, A-return, D |
+
+The last client displayed a generic `TRANSPORT` error after the local stop. Its first failed receipt was `NO_CHECKPOINT`, followed by the test guard's `TRIAL_B_STOP`; this is not evidence that the Internet or provider was unavailable. No failed session was replayed and no dependent role was seeded with a maintainer-written answer.
+
+Six sessions were attempted, not twelve completed: **157,291 input tokens, 17,145 output tokens, 46 HTTP requests, 41 tool calls, 110.95 seconds summed session time**. Actual billed amount is unknown. Short runtime and lower usage after an early failure are not efficiency wins. Raw logs include machine-local paths and remain private; these are maintainer-reported observations, not independently replayable public attestations.
+
+This pilot did not establish a complete three-arm matched comparison, reduced re-explanation, token savings or superiority. The product Skill's first-save/restore routing was subsequently clarified; the frozen model pilot did not use that new Skill, so a later instruction check must be reported separately. External human first use and the stable-release decision remain open.
+
 ## Current alpha.5 evidence — 2026-09-14
 
 The candidate's executable files are unchanged from commit `c3b9e4f75b530b9e061415672c503fbdf0a53253`. Later repository documentation is not a new model trial or a silently replaced archive.
@@ -112,7 +136,9 @@ Private [run 34687974481](https://github.com/fugui6688661/glom-continuity/action
 
 Subsequent two new public-boundary tests forced legacy pipe encodings: ASCII and CP1252 caused a Chinese-name initialization to report failure; GBK output was not UTF-8; the first demo also failed. Alpha.5 sets UTF-8/LF inside the CLI/demo process without changing OS settings. The two tests now pass locally (0.518s). The full suite contains 67 cases; alpha.5 still requires its own candidate and hosted regression. UTF-8/LF is the machine-output contract, not a promise that every terminal font can display every character.
 
-## Still unverified
+## Still unverified at the 2026-09-12 snapshot
+
+This preserves that date's status. See the dated sections above for later results; historical failures and open limits are retained.
 
 - A full real-agent save→handoff→different vendor→continue→save cycle.
 - Other MCP hosts, automatic Skill discovery, Windows/Linux physical machines.
