@@ -122,6 +122,8 @@ jobs:
                   ('SIGKILL is POSIX-only; not verified on Windows', 'posix_sigkill_unverified') for name in (
                   'test_11_sigkill_after_journal_observation_recovers_complete_revision',
                   'test_12_sigkill_during_stdout_recovers_committed_revision')})
+              permitted['test_project_memory.ProjectMemory.test_symlinked_memory_cannot_load_another_project'] = (
+                  'POSIX symlink fixture; Windows requires separate privilege handling', 'posix_symlink_unverified')
               skipped = []
               for method, owner, reason in re.findall(
                       r'^([A-Za-z0-9_]+) \(([A-Za-z0-9_.]+)\) \.\.\. skipped (.*)$', stderr, re.M):

@@ -2,6 +2,26 @@
 
 This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
 
+## One-call recovery — 2026-09-15 (development dev3)
+
+Development `0.1.0.dev3` adds read-only `resume` / `continuity_resume`: first-save state, reference checking, task-matched memories and pending-handoff reminders are available through one interface call. Existing context/checkpoint/receipt semantics remain. It does not initialize tracking, accept a handoff, execute a task or load itself in a new host conversation. A database read transaction keeps the saved project snapshot consistent; file checks are observations, not locks on later filesystem changes.
+
+The first source regression passed **94 tests, zero skips, 37.441 seconds** on macOS arm64 / Python 3.12.14 / MCP 2.2.0. Seven CLI recovery cases and one real-stdio MCP case were added; old first-save and changed-input behaviors remain covered. This measures protocol behavior, not reduced user effort or a successful full model benchmark. A subsequent installed-command assertion also requires the packaged executable to expose resume; later candidate/CI evidence must identify the tested revision.
+
+Independent documentation review found four onboarding gaps, including the dev2 tutorial pointing to incompatible Alpha.5 installation instructions and the Skill assuming portable script layout after wheel installation. Documentation is being corrected with explicit release-versus-development and portable-versus-installed routes. That review did not test the new runtime. This source is not a stable release; Alpha.5 assets do not contain project-memory or resume. Full matched-model comparison and external human first use remain release gates, not claims implied by 94 tests.
+
+## Single-assistant project memory — 2026-09-15 (local dev2)
+
+Runtime `0.1.0.dev2` adds explicitly registered project habits/workflows to the existing checkpoint and context interfaces. No second assistant or handoff is needed. Retrieval is literal keyword matching, not semantic search or automatic chat learning. This increment is not a published stable release; older public Alpha.5 packages do not contain it.
+
+The source regression on macOS arm64 / Python 3.12.14 / MCP SDK 2.2.0 passed **86 tests, zero skips** in 36.420 seconds. The original 69 remain; 16 new CLI cases and one new real-stdio MCP case cover scoped recall, lifecycle, changed references, duplicate identities, bounds, plain-text safety and the synthetic walkthrough. These are behavioral checks, not model-efficiency measurements. No new Windows/Linux run or live model session is claimed for dev2.
+
+A separate AI reviewer designed a fresh synthetic project from the public documentation and invoked only the CLI in new processes. Its original matrix was 52/54: the two apparent failures were review-script assumptions that a legacy context always includes `data.memory`. Read-only follow-up confirmed both ordinary input/artifact bodies stayed out of context; the original errors were retained, not relabeled as fixed product defects. Additional tests found a real issue: JSON-escaped lone Unicode surrogates could be saved, then make context fail. Main-thread tests reproduced it before a save-time validation fix. Both surrogate ranges now reject with `INVALID_INPUT` and a field name, retaining the prior checkpoint; valid supplementary-plane characters round-trip. The review is not external human first use.
+
+Fixed CLI SHA-256: `df6d12b54a07224cd935d181cf7ccbfb6c856f71bdd889ad7fa4b5f36599f64f`. MCP SHA-256: `0191971f033b20c20ac92c3828e37a0aa9d7654996254253e790b736c5749789`. The reviewer initially tested the pre-fix CLI `44ec9229d16cfd82c3283453c2ae19510925cbd44d2f188ab14c9e650077e473`; that result is not silently attributed to the fix. Build manifests identify exact distribution contents; an earlier local candidate also retained a dev1 plugin label and is not the final dev2 candidate.
+
+Run `python3 -B scripts/memory_demo.py --output ./memory-demo` from a clean dev2 package to replay seven real CLI subprocess calls using synthetic records. The output folder must not exist. This does not install a host hook or demonstrate fewer forgotten requirements in a real model conversation. Automatic new-chat loading, measured single-assistant multi-session benefit, full matched-model comparison and external human first use remain open.
+
 ## Stable preparation — 2026-09-15 (unpublished)
 
 Development runtime `0.1.0.dev1` was fixed at `fc34543450613cc43f0ff014789b6dbad0bddce9`. The public download remains alpha.5. Later onboarding/documentation changes do not rewrite the fixed experiment or certify a stable release.

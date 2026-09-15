@@ -40,7 +40,7 @@ def build_server(project: Path, allow_writes: bool = False):
                         'error': 'Local operation failed; no success is claimed'}
         result = CallToolResult(content=[TextContent(type='text', text=continuity.wire(envelope))],
                                 structured_content=envelope, is_error=not envelope['ok'])
-        if command == 'context' and envelope['ok']:
+        if command in ('context', 'resume') and envelope['ok']:
             # Match the pinned SDK's stdio serialization: unset defaults (such
             # as resultType) are not transmitted. Count both representations;
             # JSON-RPC's client-owned id is outside this budget.
@@ -62,9 +62,20 @@ def build_server(project: Path, allow_writes: bool = False):
         return invoke('check')
 
     @server.tool(annotations=read)
-    def continuity_context(max_chars: Annotated[int, Field(strict=True, ge=1, le=1000000)] = 6000) -> CallToolResult:
-        """Recover goal, constraints and next step. max_chars bounds the complete successful tool result, including both data representations, excluding outer JSON-RPC framing. Too small fails without truncation."""
-        return invoke('context', max_chars=max_chars)
+    def continuity_context(
+        max_chars: Annotated[int, Field(strict=True, ge=1, le=1000000)] = 6000,
+        query: Annotated[str, Field(strict=True, max_length=2000)] = '',
+    ) -> CallToolResult:
+        """Recover project state and registered habits/workflows matched by literal query keywords. max_chars bounds the complete successful tool result, including both data representations, excluding outer JSON-RPC framing. Too small fails without truncation. No automatic learning or new permission."""
+        return invoke('context', max_chars=max_chars, query=query)
+
+    @server.tool(annotations=read)
+    def continuity_resume(
+        max_chars: Annotated[int, Field(strict=True, ge=1, le=1000000)] = 6000,
+        query: Annotated[str, Field(strict=True, max_length=2000)] = '',
+    ) -> CallToolResult:
+        """Inspect first-save state or recover a saved project, checked references, matched habits and pending handoffs in one read-only call. Never initializes, accepts a handoff, executes work or grants permission. The complete successful MCP result must fit max_chars, or nothing is returned."""
+        return invoke('resume', max_chars=max_chars, query=query)
 
     @server.tool(annotations=read)
     def continuity_receipt(id: Annotated[str, Field(strict=True, min_length=1, max_length=80)]) -> CallToolResult:

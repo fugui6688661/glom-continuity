@@ -1,6 +1,8 @@
 # glom-continuity
 
-This source tree is preparing a stable release (`0.1.0.dev1`, unpublished). Download links below still point to the immutable alpha.5 assets, not these unverified development changes. The preview will not be relabeled as a stable release.
+This source tree is preparing a stable release (`0.1.0.dev3`, not publicly released). Download links below still point to immutable Alpha.5 assets, without development memory or `resume`. New features require an already-provided dev3 candidate or source tree. The preview will not be relabeled as a stable release.
+
+Development supports [project habits and workflows](docs/project-memory.md) with one assistant. Dev3's read-only `resume` returns recovery state, checks, context, selected memories and pending handoffs in one call. Workflows use literal keywords; candidate, retired/expired notes and changed references are not silently reused. It does not save, accept handoffs, grant permissions, scan chats, train a model or guarantee startup hooks. The detailed memory walkthrough is in Chinese; [installation essentials](INSTALL.md) are bilingual.
 
 **Keep the project. Change the assistant.**
 
@@ -42,6 +44,20 @@ Windows users can substitute `py -3`. Protocol and installation checks ran on a 
 | Remote HTTP / another device | Future authenticated bridge | Not implemented |
 
 Agent-neutral, without a vendor allowlist. Tool discovery, tool calls, and correct task continuation are separate checks. [Contract](adapters/agent-neutral-contract.md) · [Version matrix](adapters/support-matrix.md)
+
+## Ask your assistant in plain language
+
+Supply the selected project, tool location and [generic Skill](skills/project-continuity/SKILL.md). Try: “Save this project's goal, constraints, unresolved questions and next step.” Next session: “Recover this project, look up workflows for ‘video’, and tell me what changed and what I can do next.” Installation alone does not load new chats automatically; no global hook or chat import is needed.
+
+With an already-provided dev3 candidate/source tree, first confirm `resume` appears in `--help`, then run from the tool directory:
+
+```sh
+python3 -B scripts/continuity.py --project /absolute/project resume --query "video" --max-chars 10000
+```
+
+For MCP, discover `continuity_resume` before calling `continuity_resume(query="video", max_chars=20000)` without a project argument. Older packages retain status-first routing: only an existing checkpoint proceeds to check → context. Alpha.5 has neither memory nor `query`. [Install](INSTALL.md) explains absolute portable and wheel command bindings.
+
+States are `not_initialized`, `no_checkpoint`, `needs_review`, `no_references` and `restored`: no storage, no saved checkpoint, review required, unreferenced planning only, or recovered records—not certified completion. Resume never initializes, saves or accepts a pending handoff; corrupt existing storage remains an error. The default budget is 6000 characters for the full response, including MCP tool wrapping; insufficient budgets fail without truncation. Example budgets are not minima. These development instructions claim no new test pass.
 
 ## Track your own project
 

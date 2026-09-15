@@ -8,7 +8,9 @@
 
 [English](README.en.md) · [MCP 接入](adapters/mcp.md) · [实测记录](docs/verification.md) · [安全与数据](SECURITY.md)
 
-源码正在准备正式版（内部版本 `0.1.0.dev1`），尚未发布。下方下载链接仍是不可变的 Alpha.5，不含正在验证的改动；不会把旧下载包直接改名为正式版。
+源码正在准备正式版（内部版本 `0.1.0.dev3`），尚未公开发布。下方下载链接仍是不可变的 Alpha.5，不含开发版记忆或 `resume`；试用新功能需要已提供的 dev3 候选包或源码，不会把旧下载包直接改名为正式版。
+
+开发版支持[单助手习惯与流程恢复](docs/project-memory.md)：不需要第二位助手，仍用同一套项目检查点保存。dev3 的只读 `resume` 可一次读取恢复状态、检查、上下文、选中记忆及待领取交接；流程按字面关键词选择，停用、过期或未确认条目不推荐。它不自动保存、领取交接、扫描聊天或增加权限，也不是语义记忆或永不遗漏的保证。
 
 **0.1.0-alpha.5 · 开发者预览版，非稳定正式版。**本地 CLI、可选 MCP 和 Python 安装入口可供试验；已完成一次真实的 Codex → DeepSeek Harness → 新 Codex 合成项目恢复接力。它不等于所有助手都已兼容，也不证明比现有工具更省 token。
 
@@ -44,6 +46,20 @@ Windows 命令可用 `py -3` 替代 `python3`；已在 GitHub Windows runner 跑
 | 远端 HTTP / 其他设备 | 后续认证与同步适配 | 尚未实现，不能将本机服务直接暴露出去 |
 
 不限定厂商。Codex、Harness 只是适配样例；客户端能发现工具、真正调用工具、按要求继续任务，分别验证。[通用合同](adapters/agent-neutral-contract.md) · [版本矩阵](adapters/support-matrix.md)
+
+## 直接告诉助手要保存或恢复什么
+
+把项目位置、工具位置和[通用 Skill](skills/project-continuity/SKILL.md)交给有权限的助手。例如：“保存这个项目的目标、限制、待确认问题和下一步。”下次说：“恢复这个项目，按‘视频’找适用流程，先告诉我资料是否变化、接下来能做什么。”安装本身不会给新聊天自动加载记忆；不需要全局钩子或导入聊天。
+
+已提供的 dev3 候选/源码，经 `--help` 确认存在 `resume` 后，在工具目录可运行：
+
+```sh
+python3 -B scripts/continuity.py --project /absolute/path/to/project resume --query "视频" --max-chars 10000
+```
+
+MCP 须先发现 `continuity_resume`，再调用 `continuity_resume(query="视频", max_chars=20000)`，不传项目参数。没有该命令/工具的旧包仍按 `status` 分流：有节点才 `check` → `context`；Alpha.5 不支持记忆或 `query`。便携包与 wheel 的绝对命令路径见[安装说明](INSTALL.md)。
+
+恢复返回 `not_initialized`、`no_checkpoint`、`needs_review`、`no_references` 或 `restored`：分别表示尚未初始化、尚未保存、需审阅变化、仅可恢复无引用的规划、已恢复记录；不是完成认证。它不执行 `init`/保存/`accept`，待领取交接也不会自动领取；损坏的已有存储仍报错。预算默认 6000 字符，覆盖完整响应，MCP 还计入工具包装；示例预算不是最低值，不足时报错而非截断。开发功能说明不代表新增测试已通过。
 
 ## 在自己的项目保存节点
 

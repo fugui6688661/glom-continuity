@@ -44,6 +44,7 @@ python3 scripts/continuity.py --project <用户明确选定的项目绝对路径
 | `status` | 读取项目标识、版本/修订和检查点 | 仅在启用的选定项目内；未初始化时停止 |
 | `check` | 重新检查引用/状态是否适合继续 | 读取检查；不等于证明工作语义完成 |
 | `context --max-chars N` | 获取预算内恢复上下文 | 用户请求继续/恢复时；失败不自行截断关键限制 |
+| `resume --query TEXT --max-chars N`（dev3） | 一次只读恢复或提示尚未保存 | 仅恢复选定项目；不初始化或领取交接 |
 | `init --name NAME` | 初始化本项目状态 | 否；需要用户明确初始化意图 |
 | `checkpoint --from-file DRAFT --expect-revision R` | 保存进展 | 否；需任务范围内的保存授权、审阅过的项目内 JSON 草稿及当前修订 |
 | `handoff --recipient LABEL --expect-revision R [--ttl-seconds 3600]` | 登记交接并返回 JSON | 否；确认交接意图、标签及当前修订；默认有效期 3600 秒 |
@@ -51,7 +52,7 @@ python3 scripts/continuity.py --project <用户明确选定的项目绝对路径
 | `receipt --id UUID` | 只读查询交接记录，核实已接受回执 | 用户请求查回执或恢复领取结果时可读；不重新领取、不写状态 |
 | `export --output simple.json` | 显式导出 review 元数据文件 | 否；须确认导出意图和项目根内新文件名，只新建不覆盖 |
 
-以上九命令的本机帮助核查记录见 [有日期的核查附录](local-command-evidence.md)。帮助可用不等于真实模型续接。每个助手只显式调用当前任务所需命令；模板不启动CLI Agent、模型会话或自动接力循环。
+原九命令的本机帮助核查记录见 [有日期的核查附录](local-command-evidence.md)；dev3 新增 resume 不包含在旧核查中。帮助可用不等于真实模型续接。每个助手只显式调用当前任务所需命令；模板不启动CLI Agent、模型会话或自动接力循环。
 
 `R` 必须取调用前 `status.data.revision`，不能沿用模板常量。`DRAFT` 是项目内的已审阅 JSON 文件；`UUID` 取 `handoff.data.handoff_id`，不是客户端原生任务 ID。`LABEL` 是用户选定的普通协作标签，如 `codex` 或 `harness`，**不是账号、身份认证、权限隔离或“这个模型确实领取”的证明**。两个助手读同一项目状态；本接口不是跨项目导入协议。
 
@@ -81,7 +82,7 @@ review 包含检查点文本、项目/修订信息、引用元数据和检查结
 }
 ```
 
-这是结构示例，不是已完成工作的记录。必须恰好使用 `objective,next_action,constraints,decisions,unresolved,evidence` 六个字段；三个列表字段是字符串数组，`evidence` 各项只含 `path` 和 `role`，role 只能为 `input` 或 `artifact`。示例路径须替换成选定项目内真实、非敏感文件的相对路径；无引用可用 `[]`，不能制造不存在的证据。不要填 `sha256`、绝对路径或私人会话，哈希由 CLI 计算。
+这是结构示例，不是已完成工作的记录。必须恰好使用 `objective,next_action,constraints,decisions,unresolved,evidence` 六个字段；三个列表字段是字符串数组，`evidence` 各项只含 `path` 和 `role`。Alpha.5 的 role 为 `input` 或 `artifact`；dev2 起另支持显式 `memory`，格式与边界见[项目记忆](../docs/project-memory.md)。示例路径须替换成选定项目内真实、非敏感文件的相对路径；无引用可用 `[]`，不能制造不存在的证据。不要填 `sha256`、绝对路径或私人会话，哈希由 CLI 计算。
 
 ### 恢复预算与失败
 

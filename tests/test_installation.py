@@ -52,6 +52,8 @@ class Installation(unittest.TestCase):
             project.mkdir()
             result = self.command([str(cli), '--project', str(project), 'init', '--name', '安装测试'], base)
             self.assertTrue(json.loads(result.stdout)['ok'])
+            recovered = self.command([str(cli), '--project', str(project), 'resume'], base)
+            self.assertEqual(json.loads(recovered.stdout)['data']['recovery_state'], 'no_checkpoint')
             suffix = '.exe' if os.name == 'nt' else ''
             demo = binaries / ('glom-continuity-demo' + suffix)
             replay = self.command([str(demo), '--output', str(base / 'demo')], base)

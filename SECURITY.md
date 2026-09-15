@@ -10,6 +10,10 @@ The OS account and selected project are trusted. Recipient strings are labels, n
 
 No model calls, subprocess tools, network connections or telemetry occur in the runtime CLI. Tests/demo/build scripts use local child processes. There is no auto-discovery of chats, credentials or other projects. Export excludes raw evidence bytes but includes authored text and relative filenames; those can still be sensitive.
 
+Development dev2 explicitly opts referenced files into context-body recall with evidence role `memory`. These UTF-8 JSON files contain project preferences/workflows, not authenticated instructions. Their `source` and `active` fields are author assertions, not proof of user approval. Candidate/retired/expired entries are omitted from recall, but remain in the source files; this is not secure erasure. A connected cloud host may receive selected memory bodies. Review those files before registering them. Keyword matching is literal and can miss or overmatch intent; conflicting prose under different IDs requires review. Current user instructions and host permissions always take precedence.
+
+Memory documents share the existing checkpoint revision and reference hashes (no second database); at most four documents, each 128 KiB and 32 entries. Changed references withhold recall until reviewed. File-content history is not backed up by checkpoints or review exports. Expiry uses the local clock; there is no clock-rollback defense or signed provenance.
+
 The optional MCP adapter uses the official Python SDK and local stdio, with no HTTP listener. It binds one project at startup and exposes only read tools unless `--allow-writes` is explicitly set. The host launches it as a child process. Installing the SDK downloads dependencies; the server itself does not call a model. A connected cloud host may send tool output to its model provider: local storage does not mean the complete assistant workflow stays offline. Tool annotations are hints, not authorization enforcement; only the fixed project and exposed interface define the adapter's scope.
 
 ## Guardrails and limits

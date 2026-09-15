@@ -38,7 +38,7 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
         async with self.client() as client:
             names = {t.name for t in (await client.list_tools()).tools}
             self.assertEqual(names, {'continuity_status', 'continuity_check',
-                                     'continuity_context', 'continuity_receipt'})
+                                     'continuity_context', 'continuity_receipt', 'continuity_resume'})
             result = await client.call_tool('continuity_status', {})
             self.assertFalse(result.is_error)
             state = result.structured_content
@@ -46,6 +46,28 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(state['data']['revision'], 0)
             self.assertEqual(state['data']['name'], 'Example project')
         self.assertEqual(self.cli('status')['data']['revision'], 0)
+
+    async def test_readonly_resume_handles_first_save_then_recovers_current_project(self):
+        async with self.client() as client:
+            result = await client.call_tool('continuity_resume', {})
+            self.assertFalse(result.is_error)
+            self.assertEqual(result.structured_content['data']['recovery_state'], 'not_initialized')
+            self.assertFalse((self.project / '.continuity').exists())
+            self.cli('init', '--name', 'One call recovery')
+            result = await client.call_tool('continuity_resume', {})
+            self.assertEqual(result.structured_content['data']['recovery_state'], 'no_checkpoint')
+            draft = dict(objective='Review a draft', next_action='Read the brief',
+                         constraints=['Do not publish'], decisions=[], unresolved=['Price unknown'], evidence=[])
+            (self.project / 'draft.json').write_text(json.dumps(draft), encoding='utf-8')
+            self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'), '--expect-revision', '0')
+            result = await client.call_tool('continuity_resume', {'max_chars': 6000})
+            self.assertFalse(result.is_error)
+            self.assertEqual(result.structured_content['data']['recovery_state'], 'no_references')
+            self.assertIn('Price unknown', result.structured_content['data']['text'])
+            small = await client.call_tool('continuity_resume', {'max_chars': 1000})
+            self.assertTrue(small.is_error)
+            self.assertEqual(small.structured_content['code'], 'BUDGET_TOO_SMALL')
+            self.assertIsNone(small.structured_content['data'])
 
     async def test_mcp_writer_hands_off_to_cli_and_recovers_its_next_revision(self):
         (self.project / 'input.txt').write_text('source data', encoding='utf-8')
@@ -130,3 +152,25 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             encoded = json.dumps(larger.model_dump(by_alias=True, exclude_none=True), ensure_ascii=False, separators=(',', ':'))
             self.assertLessEqual(len(encoded) + 1, 9000)
             self.assertIn('Do not delete', larger.structured_content['data']['text'])
+
+    async def test_readonly_context_recalls_task_matched_workflow_with_its_full_budget(self):
+        self.cli('init', '--name', 'Personal workflow')
+        note = {'id': 'film', 'kind': 'workflow', 'title': 'Film review',
+                'body': 'Inspect frames and listen to the audio before delivery.',
+                'when': ['video'], 'status': 'active', 'source': 'Synthetic user request',
+                'expires_at': None}
+        (self.project / 'habits.json').write_text(json.dumps({'format': 'continuity-memory-v1', 'items': [note]}))
+        draft = {'objective': 'Produce a video', 'next_action': 'Review assets',
+                 'constraints': ['Do not publish'], 'decisions': [], 'unresolved': ['Music rights'],
+                 'evidence': [{'path': 'habits.json', 'role': 'memory'}]}
+        (self.project / 'draft.json').write_text(json.dumps(draft))
+        self.assertTrue(self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'), '--expect-revision', '0')['ok'])
+        async with self.client() as client:
+            result = await client.call_tool('continuity_context', {'query': 'Make a VIDEO', 'max_chars': 6000})
+            self.assertFalse(result.is_error)
+            data = result.structured_content['data']
+            self.assertEqual([x['id'] for x in data['memory']['selected']], ['film'])
+            self.assertIn(note['body'], data['text'])
+            small = await client.call_tool('continuity_context', {'query': 'video', 'max_chars': 1800})
+            self.assertTrue(small.is_error)
+            self.assertEqual(small.structured_content['code'], 'BUDGET_TOO_SMALL')

@@ -1,0 +1,41 @@
+name: Report a problem / 问题反馈
+description: A small reproduction helps us fix recovery or installation problems.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please use synthetic examples. Never upload API keys, private chats, company files or your project database.
+        请只用虚构例子，不要上传密钥、私聊、公司资料或项目数据库。安全问题请用仓库 Security 中的私密报告。
+  - type: input
+    id: version
+    attributes:
+      label: Tool version / 工具版本
+      description: Output of --version, plus ZIP/wheel/source installation method.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment / 使用环境
+      description: OS, Python version, assistant and CLI or MCP. No account information.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps and observed result / 操作和实际结果
+      description: Small synthetic reproduction; replace personal paths with placeholders.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect? / 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error code / 错误码
+      description: A redacted error is enough. Do not attach a full agent transcript.

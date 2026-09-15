@@ -56,6 +56,9 @@ tool_timeout_sec = 15
 | `continuity_check` | `continuity_checkpoint` |
 | `continuity_context` | `continuity_handoff` |
 | `continuity_receipt` | `continuity_accept`、`continuity_export` |
+| `continuity_resume`（dev3） | 不增加写工具 |
+
+dev3 可优先使用 `continuity_resume(query="视频", max_chars=12000)`：在一次只读调用内分清尚未初始化、没有保存节点、需要复核、无文件引用的规划、已恢复记录，并返回适用习惯与待接交接。它不初始化、不保存、不领取交接、不执行任务。`restored` 仅表示记录已恢复，不表示成果验收通过。旧版未公布此工具时仍用 status → check → context，首次保存前不要调用 context。
 
 命令语义和六字段草稿见[完整CLI合同](README.md)。MCP参数用下划线，例如`from_file`、`expect_revision`；项目在启动时绑定，工具调用不能指定其他项目。存储仍是同一个项目的`.continuity/`，不是MCP自己的第二套数据库。
 
@@ -65,7 +68,9 @@ English: `from_file` is a regular JSON draft inside the bound project. Relative 
 
 读取结果要同时检查`isError`和完整`structuredContent`中的`ok/code/data`。业务错误保留CLI错误码，SDK对未知工具和无效结构还可能返回协议或工具错误，不得假定所有错误都有`structuredContent`。
 
-`continuity_context.max_chars`限制完整成功工具结果的字符数，包含文本、结构化内容两份表示及换行，不包括客户端负责的外层JSON-RPC封装。它与CLI stdout预算的边界不同；都不是模型token预算。无法容纳时返回`BUDGET_TOO_SMALL`，不悄悄截掉限制。错误反馈本身不受极小成功预算限制。
+`continuity_context.max_chars` 和 `continuity_resume.max_chars` 限制完整成功工具结果的字符数，包含文本、结构化内容两份表示及换行，不包括客户端负责的外层JSON-RPC封装。它与CLI stdout预算的边界不同；都不是模型token预算。无法容纳时返回`BUDGET_TOO_SMALL`，不悄悄截掉限制。错误反馈本身不受极小成功预算限制。
+
+开发版 dev2 的同一 `continuity_context` 另接受可选 `query`（最多2000字符），用于从当前 checkpoint 的 `memory` 角色文件中按字面关键词恢复习惯/流程。不增加工具数量，不自动学习，不绕过只读设置。详见[项目记忆](../docs/project-memory.md)。未登记记忆的旧项目保持原有 context 输出；Alpha.5 不支持此参数/角色，不要混用版本。
 
 引用检查只证明检查时的文件状态，不证明内容正确。`needs_review`必须复核；`no_references`只能恢复无文件证据的规划。只读MCP服务器不是OS沙箱；同一系统用户仍是信任边界。
 

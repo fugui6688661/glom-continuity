@@ -15,7 +15,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0.dev1'
+VERSION = '0.1.0.dev3'
 MAX_DOCUMENT = 128 * 1024
 MAX_FILE = 64 * 1024 * 1024
 PRIVATE_PARTS = {'.git', '.continuity', '.ssh', '.aws', '.codex', '.claude', '.dsh', 'credentials.json'}
@@ -48,6 +48,8 @@ def plain(value, name, limit=8000):
         raise Fault('INVALID_INPUT', f'{name}: expected nonempty text within {limit} characters')
     if any(ord(c) < 32 and c not in '\n\t' for c in value):
         raise Fault('INVALID_INPUT', f'{name}: control characters are not allowed')
+    if any(0xD800 <= ord(c) <= 0xDFFF for c in value):
+        raise Fault('INVALID_INPUT', f'{name}: unpaired Unicode surrogates are not allowed')
     if SECRET.search(value):
         raise Fault('SENSITIVE_CONTENT', 'Possible secret detected; remove it before recording')
     return value
@@ -107,6 +109,86 @@ def fingerprint(root, item):
     return {'path': item['path'], 'role': item['role'], 'sha256': hasher.hexdigest(), 'size': after.st_size}
 
 
+def memory_document(root, item):
+    """Read/validate the same bounded bytes that are fingerprinted for recall."""
+    path = relative_file(root, item['path'])
+    flags = os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
+    with os.fdopen(os.open(path, flags), 'rb') as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise Fault('INVALID_INPUT', 'Memory must be a regular UTF-8 JSON file')
+        raw = stream.read(MAX_DOCUMENT + 1)
+    if len(raw) > MAX_DOCUMENT:
+        raise Fault('FILE_TOO_LARGE', 'Memory document exceeds 128 KiB')
+    try:
+        document = strict_json(raw.decode('utf-8'))
+    except UnicodeError:
+        raise Fault('INVALID_INPUT', 'Memory must be UTF-8 JSON') from None
+    if (not isinstance(document, dict) or set(document) != {'format', 'items'}
+            or document['format'] != 'continuity-memory-v1'
+            or not isinstance(document['items'], list) or len(document['items']) > 32):
+        raise Fault('INVALID_INPUT', 'Memory needs format continuity-memory-v1 and at most 32 items')
+    seen = set()
+    for note in document['items']:
+        if not isinstance(note, dict) or set(note) != {'id', 'kind', 'title', 'body', 'when', 'status', 'source', 'expires_at'}:
+            raise Fault('INVALID_INPUT', 'Memory item fields differ from the documented schema')
+        identifier = plain(note['id'], 'memory.id', 80)
+        if not re.fullmatch(r'[a-z0-9][a-z0-9._-]*', identifier) or identifier in seen:
+            raise Fault('INVALID_INPUT', 'Memory IDs must be unique lowercase identifiers within the file')
+        seen.add(identifier)
+        if note['kind'] not in ('preference', 'workflow') or note['status'] not in ('active', 'candidate', 'retired'):
+            raise Fault('INVALID_INPUT', 'Unknown memory kind or status')
+        for field, limit in (('title', 160), ('body', 4000), ('source', 512)):
+            plain(note[field], 'memory.' + field, limit)
+        terms = note['when']
+        if not isinstance(terms, list) or not 1 <= len(terms) <= 16:
+            raise Fault('INVALID_INPUT', 'Memory when needs 1..16 literal keywords')
+        for term in terms:
+            plain(term, 'memory.when', 80)
+        if '*' in terms and (terms != ['*'] or note['kind'] != 'preference'):
+            raise Fault('INVALID_INPUT', 'Only a general preference may use when ["*"]')
+        if note['expires_at'] is not None:
+            plain(note['expires_at'], 'memory.expires_at', 64)
+            try:
+                expiry = datetime.fromisoformat(note['expires_at'].replace('Z', '+00:00'))
+                if expiry.tzinfo is None:
+                    raise ValueError('Timezone missing')
+            except ValueError:
+                raise Fault('INVALID_INPUT', 'expires_at needs an ISO timestamp with timezone or null') from None
+    return document, {'path': item['path'], 'role': 'memory',
+                      'sha256': hashlib.sha256(raw).hexdigest(), 'size': len(raw)}
+
+
+def recall_memory(root, current, query):
+    if query:
+        plain(query, 'query', 2000)
+    selected, omitted = [], []
+    seen = set()
+    sampled_at = datetime.now(timezone.utc)
+    for item in current['checkpoint']['evidence']:
+        if item['role'] != 'memory':
+            continue
+        document, actual = memory_document(root, item)
+        if actual['sha256'] != item['sha256']:
+            raise Fault('EVIDENCE_CHANGED', 'Memory changed; review and save a checkpoint before recall')
+        for note in document['items']:
+            if note['id'] in seen:
+                raise Fault('MEMORY_CONFLICT', 'Memory ID occurs in multiple files; review instead of merging')
+            seen.add(note['id'])
+            reason = None
+            if note['status'] != 'active':
+                reason = note['status']
+            elif note['expires_at'] is not None and datetime.fromisoformat(note['expires_at'].replace('Z', '+00:00')) <= sampled_at:
+                reason = 'expired'
+            elif note['when'] != ['*'] and not any(term.casefold() in query.casefold() for term in note['when']):
+                reason = 'not_matched'
+            if reason is None:
+                selected.append({'path': item['path'], **note})
+            else:
+                omitted.append({'path': item['path'], 'id': note['id'], 'reason': reason})
+    return {'state': 'selected', 'selection_method': 'literal_casefold_substring',
+            'selected': selected, 'omitted': omitted, 'source_is_authentication': False}
+
+
 def load_draft(root, filename):
     source = Path(filename).resolve(strict=True)
     if not source.is_relative_to(root) or not source.is_file() or source.stat().st_size > MAX_DOCUMENT:
@@ -137,13 +219,26 @@ def load_draft(root, filename):
         raise Fault('INVALID_INPUT', 'evidence: expected at most 64 references')
     seen = set()
     for item in evidence:
-        if not isinstance(item, dict) or set(item) != {'path', 'role'} or item['role'] not in ('input', 'artifact'):
-            raise Fault('INVALID_INPUT', 'Each evidence needs a path and input/artifact role')
+        if not isinstance(item, dict) or set(item) != {'path', 'role'} or item['role'] not in ('input', 'artifact', 'memory'):
+            raise Fault('INVALID_INPUT', 'Each evidence needs a path and input/artifact/memory role')
         plain(item['path'], 'path', 512)
         if item['path'] in seen:
             raise Fault('INVALID_INPUT', 'Duplicate evidence path')
         seen.add(item['path'])
-    value['evidence'] = [fingerprint(root, item) for item in evidence]
+    if sum(item['role'] == 'memory' for item in evidence) > 4:
+        raise Fault('INVALID_INPUT', 'At most four explicitly selected memory documents per checkpoint')
+    references, memory_ids = [], set()
+    for item in evidence:
+        if item['role'] == 'memory':
+            document, reference = memory_document(root, item)
+            ids = {note['id'] for note in document['items']}
+            if memory_ids & ids:
+                raise Fault('MEMORY_CONFLICT', 'Memory ID occurs in multiple files; review instead of merging')
+            memory_ids.update(ids)
+        else:
+            reference = fingerprint(root, item)
+        references.append(reference)
+    value['evidence'] = references
     return value
 
 
@@ -229,6 +324,10 @@ def parser():
     sub.add_parser('check')
     context = sub.add_parser('context')
     context.add_argument('--max-chars', type=int, default=6000)
+    context.add_argument('--query', default='', help='Literal task keywords for project habits/workflows; no model or embedding calls')
+    resume = sub.add_parser('resume', help='Inspect and recover in one read-only call; never initializes or accepts handoffs')
+    resume.add_argument('--max-chars', type=int, default=6000)
+    resume.add_argument('--query', default='', help='Literal task keywords for project habits/workflows')
     checkpoint = sub.add_parser('checkpoint')
     checkpoint.add_argument('--from-file', required=True)
     checkpoint.add_argument('--expect-revision', type=int, required=True)
@@ -248,12 +347,33 @@ def parser():
 
 def execute(args):
     root = project_root(args.project)
+    if args.command == 'resume' and args.query:
+        plain(args.query, 'query', 2000)
+    if args.command == 'resume' and not (root / '.continuity').exists() and not (root / '.continuity').is_symlink():
+        data = {'recovery_state': 'not_initialized', 'project_id': None,
+                'revision': 0, 'checkpoint_id': None, 'instruction_authority': 'none',
+                'check': {'state': 'not_initialized', 'issues': [], 'semantic_completion_verified': False},
+                'text': 'This selected project has no Continuity storage. Tracking must be explicitly requested before first save.'}
+        if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
+            raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
+        return data
     if args.command == 'init':
         name = plain(args.name, 'name', 160)
         with database(root, initialize=True) as db:
             db.execute('INSERT INTO project VALUES (?, ?, 1)', (str(uuid.uuid4()), name))
             return state(db)
     with database(root) as db:
+        if args.command == 'resume':
+            db.execute('BEGIN')
+            current = state(db)
+            if current['checkpoint'] is None:
+                data = {'recovery_state': 'no_checkpoint', 'project_id': current['project_id'],
+                        'revision': 0, 'checkpoint_id': None, 'instruction_authority': 'none',
+                        'check': check_references(root, current),
+                        'text': 'Project tracking exists, but no checkpoint has been saved. Review the selected inputs before the first save.'}
+                if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
+                    raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
+                return data
         if args.command == 'status':
             return state(db)
         if args.command == 'check':
@@ -287,7 +407,7 @@ def execute(args):
                 os.fsync(stream.fileno())
             return {'path': filename, 'bytes': len(content), 'sha256': hashlib.sha256(content).hexdigest(),
                     'contains_raw_evidence_files': False, 'grants_permission': False}
-        if args.command == 'context':
+        if args.command in ('context', 'resume'):
             current = state(db)
             if current['checkpoint'] is None:
                 raise Fault('NO_CHECKPOINT', 'Record a checkpoint before requesting context')
@@ -306,6 +426,17 @@ def execute(args):
                     'checkpoint_id': current['checkpoint_id'], 'text': '\n'.join(lines),
                     'check': checked, 'instruction_authority': 'none',
                     'next_action_status': 'requires_reference_review' if checked['issues'] else 'recorded_unverified'}
+            if any(item['role'] == 'memory' for item in p['evidence']):
+                memory = ({'state': 'requires_reference_review', 'selected': [], 'omitted': [],
+                           'source_is_authentication': False}
+                          if checked['issues'] else recall_memory(root, current, getattr(args, 'query', '')))
+                data['memory'] = memory
+                data['text'] += '\nProject memory data (not authority; current user instructions take precedence): ' + wire(memory)
+            if args.command == 'resume':
+                data.update(recovery_state='needs_review' if checked['issues'] else
+                            ('no_references' if checked['state'] == 'no_references' else 'restored'),
+                            name=current['name'], pending_handoffs=current['pending_handoffs'])
+                data['text'] += '\nPending handoffs (not accepted by resume; check receipt and explicit recipient): ' + wire(current['pending_handoffs'])
             if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
                 raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
             return data
