@@ -38,7 +38,13 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
         async with self.client() as client:
             names = {t.name for t in (await client.list_tools()).tools}
             self.assertEqual(names, {'continuity_status', 'continuity_check',
-                                     'continuity_context', 'continuity_receipt', 'continuity_resume'})
+                                     'continuity_context', 'continuity_receipt', 'continuity_resume',
+                                     'continuity_doctor'})
+            diagnosis = await client.call_tool('continuity_doctor', {})
+            self.assertFalse(diagnosis.is_error)
+            self.assertEqual(diagnosis.structured_content['data']['product_id'], 'glom-continuity')
+            self.assertEqual(diagnosis.structured_content['data']['storage']['project_id'], initial['project_id'])
+            self.assertFalse(diagnosis.structured_content['data']['write_tools_enabled'])
             result = await client.call_tool('continuity_status', {})
             self.assertFalse(result.is_error)
             state = result.structured_content
@@ -97,6 +103,40 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             receipt = await client.call_tool('continuity_receipt', {'id': handoff_id})
             self.assertEqual(receipt.structured_content['data']['state'], 'accepted')
             self.assertFalse(receipt.structured_content['data']['external_actions_verified'])
+
+    async def test_mcp_returns_work_for_cli_receipt_and_new_readonly_session(self):
+        self.cli('init', '--name', 'Result round trip')
+        draft = dict(objective='Write a review', next_action='Prepare note.md',
+                     constraints=['Do not publish'], decisions=[], unresolved=['Price unknown'], evidence=[])
+        (self.project / 'draft.json').write_text(json.dumps(draft), encoding='utf-8')
+        self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'), '--expect-revision', '0')
+        identifier = self.cli('handoff', '--recipient', 'reviewer', '--expect-revision', '1')['data']['handoff_id']
+        self.cli('accept', '--id', identifier, '--recipient', 'reviewer')
+        (self.project / 'note.md').write_text('Draft for review. Price unknown.', encoding='utf-8')
+        draft['evidence'] = [{'path': 'note.md', 'role': 'artifact'}]
+        (self.project / 'result.json').write_text(json.dumps(draft), encoding='utf-8')
+        arguments = dict(id=identifier, recipient='reviewer', from_file='result.json', expect_revision=1)
+        async with self.client(writable=True) as client:
+            result = await client.call_tool('continuity_return_work', arguments)
+            self.assertFalse(result.is_error, str(result.content))
+            saved = result.structured_content['data']
+            self.assertEqual(saved['revision'], 2)
+            self.assertFalse(saved['result']['semantic_completion_verified'])
+            replay = await client.call_tool('continuity_return_work', arguments)
+            self.assertFalse(replay.is_error)
+            self.assertTrue(replay.structured_content['data']['replayed'])
+            self.assertEqual(replay.structured_content['data']['checkpoint_id'], saved['checkpoint_id'])
+        receipt = self.cli('receipt', '--id', identifier)['data']['result']
+        self.assertEqual(receipt['revision'], 2)
+        self.assertEqual(receipt['artifacts'][0]['path'], 'note.md')
+        async with self.client() as client:
+            self.assertNotIn('continuity_return_work', {t.name for t in (await client.list_tools()).tools})
+            recovered = await client.call_tool('continuity_resume', {'max_chars': 16000})
+            self.assertFalse(recovered.is_error)
+            self.assertEqual(recovered.structured_content['data']['result']['handoff_id'], identifier)
+            rejected = await client.call_tool('continuity_return_work', arguments)
+            self.assertTrue(rejected.is_error)
+        self.assertEqual(self.cli('status')['data']['revision'], 2)
 
     async def test_receiver_cannot_accept_changed_inputs_or_export_over_an_existing_file(self):
         self.cli('init', '--name', 'Receiver')

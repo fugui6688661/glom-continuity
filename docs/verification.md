@@ -2,6 +2,21 @@
 
 This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
 
+## Runtime diagnosis and result return — 2026-09-15 (development dev4)
+
+The display brand becomes **Recaloom · 续珞**; compatibility identifiers, existing release assets and project storage remain unchanged. Dev4 adds `doctor` and `return-work` to CLI/MCP. It is development source, not a stable release or automatic installed upgrade.
+
+Local macOS / Python 3.12.14 / MCP SDK 2.2.0 passed 109 tests with no skips on the executable hashes below. Tests exercise real CLI and stdio processes, result replay/concurrency, missing/changed references, history, recovery budgets and isolated wheel install/uninstall. A separate nine-call synthetic round used fixed dev3 at `f043a044a2479782a97ef6f641121cf57784e836` to create/accept a task, dev4 to return its output, dev3 to read and save again, and dev4 to read the original result link. This is not validation of every old version or physical machine.
+
+An independent AI reviewer designed 17 additional scenarios: initially 13 passed and four failed because a result draft omitting its original input hid that input's later changes. Two new main-thread tests reproduced this before the fix. Reference checks now follow explicitly linked accepted source checkpoints as well as the result. The same independent 17 scenarios then passed, with unchanged assertions; original failures were retained. Link-corruption guards received static review, not fault-injected acceptance. AI review is not external human first use or a matched-model comparison.
+
+One intentional error-contract change is documented in [installation/result return](result-return.md): existing `.continuity/` without its database now fails with `UNRECOGNIZED_STORAGE`, instead of suggesting `NOT_INITIALIZED`. The original missing-DB regression's eight subcases failed on that code change; only the expected code was updated, with file-preservation and stopped-backup restoration checks retained.
+
+CLI SHA-256: `485e8bc72c7f20deb2ac0a02ee4b125c48ca5bb770c64c71ac60952896dea214`.
+MCP SHA-256: `bce11f7d8b5b5c282b7641029b70961243cb6aed39c78788bb6f36e6793f7354`.
+
+This entry does not reuse dev3 CI results to certify dev4. Follow the exact revision's hosted checks and candidate manifests for package/platform evidence. Public downloads remain Alpha.5 until a distinct release is published. Live multi-host dev4 use, the outstanding matched-model evaluation and the stable-release decision remain open.
+
 ## One-call recovery — 2026-09-15 (development dev3)
 
 Development `0.1.0.dev3` adds read-only `resume` / `continuity_resume`: first-save state, reference checking, task-matched memories and pending-handoff reminders are available through one interface call. Existing context/checkpoint/receipt semantics remain. It does not initialize tracking, accept a handoff, execute a task or load itself in a new host conversation. A database read transaction keeps the saved project snapshot consistent; file checks are observations, not locks on later filesystem changes.

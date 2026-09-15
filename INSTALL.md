@@ -6,7 +6,7 @@ Requires Python 3.10+. This is a CLI with optional MCP, not a chat app. Keep the
 ## 先选版本 / Choose the delivery
 
 - **公开 Alpha.5 / Released preview:** 从[发布页 / release page](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5)下载命名附件 `glom-continuity-0.1.0-alpha.5.zip` 或对应 wheel，不是自动生成的 Source code。无新记忆或 `resume`，不是稳定版。 Use the named ZIP or matching wheel, not the automatic Source code archive. No development memory or resume; not stable.
-- **已提供 dev3 候选/源码 / Provided dev3 candidate or source:** `0.1.0.dev3` 尚未公开发布；使用维护者已提供的工具目录或候选 wheel，核对 `--version` 与帮助。此处没有 dev3 公共下载链接；未拿到时不能用 Alpha.5 代替记忆教程。 Use the already-provided directory or wheel and check version/help. There is no public dev3 download here; Alpha.5 cannot substitute for the memory walkthrough.
+- **开发候选/源码 / Development candidate or source:** 当前源码 `0.1.0.dev4`；没有本版发布下载。使用已提供的工具目录或候选 wheel，核对 `--version` 与帮助；dev3 有恢复，dev4 另加诊断与回存，Alpha.5 不能代替新版教程。 Use the provided directory or wheel and check version/help: resume requires dev3 or later; doctor and return-work require dev4. There is no released dev4 download here.
 
 目前没有 PyPI/应用商店版本，不从同名陌生软件安装。 No PyPI/app-store release is offered; avoid unrelated namesakes.
 
@@ -27,8 +27,8 @@ On Windows substitute `py -3`. Use a new output directory; nothing is overwritte
 
 ## 安装成命令 / Install a local wheel
 
-以下是 Alpha.5 wheel 示例；dev3 仅在收到候选 wheel 后，把文件名替换为实际收到的文件。只有源码则走上面的便携路径。基础安装不联网、不调用模型；新建独立环境，不覆盖已有环境。
-These examples use the Alpha.5 wheel. For dev3, substitute the exact provided candidate wheel filename; source-only users take the portable route. Base installation is offline and makes no model calls. Use a new environment, not an existing one.
+以下是 Alpha.5 wheel 示例；开发版仅在收到候选 wheel 后，把文件名替换为实际收到的文件。只有源码则走上面的便携路径。基础安装不联网、不调用模型；新建独立环境，不覆盖已有环境。
+These examples use the Alpha.5 wheel. For development versions, substitute the exact provided candidate wheel filename; source-only users take the portable route. Base installation is offline and makes no model calls. Use a new environment, not an existing one.
 
 Mac / Linux：
 
@@ -71,6 +71,12 @@ Use resume only after help/tool discovery confirms it. Recovery is read-only, gr
 旧包仍先 status；有节点才 check → context。Alpha.5 不支持记忆/query；`init` 只建存储，`NO_CHECKPOINT` 是未保存，不是网络故障；坏库不能当新项目。无需全局钩子、整机权限或聊天导入，也不保证新会话自动加载。
 Older packages use status, then check → context only with a checkpoint. Alpha.5 has no memory/query. Initialization alone saves no memory; NO_CHECKPOINT is not a network failure. Corrupt storage remains an error. No global hook, whole-computer access or chat import is needed; automatic new-session loading is not guaranteed.
 
+## 装的是哪一份 / Identify the invoked runtime
+
+Recaloom 是新显示名，兼容标识仍是 `glom-continuity`；仓库、命令和 `.continuity/` 不改，不要为改名重新初始化。帮助列有 `doctor` 时，在选定的绝对命令前缀后运行 `--project <项目> doctor`，或发现后调用 `continuity_doctor()`。它返回版本、脚本位置/哈希、项目格式与ID；MCP另返回是否启用了写工具。`ok:true` 表示诊断完成，仍需检查 `storage.compatible`。陌生/损坏存储必须保留，不删除、不迁移、不自动修复。
+
+Recaloom is the display name; compatibility identifiers and storage remain unchanged. Discover `doctor` before using it. The report identifies the invoked script, version/hash and selected storage; MCP also reports enabled writes. Successful diagnosis is not necessarily compatible storage. This is self-reported runtime information and schema recognition, **not publisher authentication**. Paths can reveal a local username: redact before sharing. See [result return](docs/result-return.md) for dev4 instructions.
+
 ## 可选 MCP / Optional MCP
 
 按[MCP 接入 / MCP setup](adapters/mcp.md)配置。在独立环境安装可选依赖 / install the optional dependency in the separate environment:
@@ -89,6 +95,20 @@ Read-only is the default. Enable `--allow-writes` explicitly for authorized writ
 
 用非敏感小项目保存后，在新对话恢复，检查限制和未知项是否保留；只有口头“记住了”不算通过。若测试接力：A 保存并交接 → 新 B 检查/领取/工作/保存并交回 → 新 A 读回结果。需要共享同一份本地项目，不提供跨电脑同步；只读快照不等于实时校验/回写。
 Save a non-sensitive project, then recover in a fresh session and inspect constraints and unknowns. A verbal “remembered” is insufficient. For a relay, A saves/hands off; fresh B checks, accepts, works, saves and returns it; fresh A reads the result. Both need the same local project. Snapshots are not live checking/writes; no cross-device sync is supplied.
+
+## 升级，不重建项目 / Upgrade without resetting the project
+
+改好源码、发布版本和你本机装好，是三件不同的事。本工具目前没有自动更新器；GitHub出现新代码，不会自动升级你的助手。Recaloom是显示名，旧安装/命令标识继续兼容。
+
+1. 结束当前保存操作，停止此项目的MCP写连接。停写后备份该项目的 `.continuity/` 与引用文件；不备份密钥，不覆盖已有备份。
+2. 下载明确的新版本到独立工具目录，并核对该版本清单。便携包保留旧目录作回退；wheel装到新的专用虚拟环境，先验证，不覆盖工作资料。
+3. 在**同一个项目路径**上用新工具运行版本/帮助，存在doctor时诊断，再恢复并核对目标、限制和文件引用。已有项目**不要再次init**，不要删除 `.continuity/`。
+4. 核对通过后，把助手的工具位置指向新目录/环境；MCP仅调整此条连接的可执行路径，保留原 `--project` 路径和只读/写权限，再重启连接。通用Skill也使用对应版本，不覆盖其他项目指令。
+5. 有异常时保留报错与数据，停止写入。能否回退按该版本兼容说明判断，不把旧备份直接盖到新进展上。新版回存记录的关联，旧读者可能看不到，并不代表记录被删除。
+
+不需要把目标重新讲给每个助手，也不需要两份项目数据库。只有无法访问同一份项目的另一台电脑，才涉及额外的数据迁移；本工具当前不提供自动跨电脑同步。旧同名软件的数据不得当成本工具数据迁移。
+
+English: Source updates, releases and installed versions are separate. There is no automatic updater. Stop project writes and back up the selected project, install the new artifact in a separate tool directory/environment, then inspect the **same** project with the new executable. Do not reinitialize or delete storage. After verification, point only the selected host connection at the new executable, retaining its project path and permission mode; restart that connection. Use the matching Skill. Keep the old tool for a reviewed rollback, but do not overwrite new progress with an old backup. A renamed brand does not require recreating memory, and no automatic cross-computer sync is supplied.
 
 ## 停用与反馈 / Removal and feedback
 
