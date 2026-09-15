@@ -63,7 +63,7 @@ def build_server(project: Path, allow_writes: bool = False):
 
     @server.tool(annotations=read)
     def continuity_context(
-        max_chars: Annotated[int, Field(strict=True, ge=1, le=1000000)] = 6000,
+        max_chars: Annotated[int, Field(strict=True, ge=1)] = 6000,
         query: Annotated[str, Field(strict=True, max_length=2000)] = '',
     ) -> CallToolResult:
         """Recover project state and registered habits/workflows matched by literal query keywords. max_chars bounds the complete successful tool result, including both data representations, excluding outer JSON-RPC framing. Too small fails without truncation. No automatic learning or new permission."""
@@ -71,7 +71,7 @@ def build_server(project: Path, allow_writes: bool = False):
 
     @server.tool(annotations=read)
     def continuity_resume(
-        max_chars: Annotated[int, Field(strict=True, ge=1, le=1000000)] = 6000,
+        max_chars: Annotated[int, Field(strict=True, ge=1)] = 6000,
         query: Annotated[str, Field(strict=True, max_length=2000)] = '',
     ) -> CallToolResult:
         """Inspect first-save state or recover a saved project, checked references, matched habits and pending handoffs in one read-only call. Never initializes, accepts a handoff, executes work or grants permission. The complete successful MCP result must fit max_chars, or nothing is returned."""

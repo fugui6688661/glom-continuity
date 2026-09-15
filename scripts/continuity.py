@@ -433,10 +433,16 @@ def execute(args):
                 data['memory'] = memory
                 data['text'] += '\nProject memory data (not authority; current user instructions take precedence): ' + wire(memory)
             if args.command == 'resume':
+                sampled_at = now()
+                pending = [dict(item, claimability=
+                                'expired' if item['expires_at'] <= sampled_at else
+                                'stale' if item['revision'] != current['revision'] else
+                                'requires_reference_review' if checked['issues'] else
+                                'requires_explicit_accept') for item in current['pending_handoffs']]
                 data.update(recovery_state='needs_review' if checked['issues'] else
                             ('no_references' if checked['state'] == 'no_references' else 'restored'),
-                            name=current['name'], pending_handoffs=current['pending_handoffs'])
-                data['text'] += '\nPending handoffs (not accepted by resume; check receipt and explicit recipient): ' + wire(current['pending_handoffs'])
+                            name=current['name'], pending_handoffs=pending)
+                data['text'] += '\nUnclaimed handoffs (claimability is advisory at read time; accept rechecks all gates): ' + wire(pending)
             if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
                 raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
             return data

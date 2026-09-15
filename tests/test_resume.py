@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +77,27 @@ class Resume(unittest.TestCase):
     def test_invalid_query_is_rejected_even_without_saved_memory(self):
         self.assertEqual(self.cli('resume', '--query', 'x' * 2001, ok=False)['code'], 'INVALID_INPUT')
         self.assertFalse((self.project / '.continuity').exists())
+
+    def test_handoff_hints_distinguish_unclaimed_from_currently_claimable(self):
+        self.save()
+        expiring = self.cli('handoff', '--recipient', 'short', '--expect-revision', '1',
+                            '--ttl-seconds', '1')['data']['handoff_id']
+        stale = self.cli('handoff', '--recipient', 'old', '--expect-revision', '1')['data']['handoff_id']
+        time.sleep(1.05)
+        self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'), '--expect-revision', '1')
+        current = self.cli('handoff', '--recipient', 'new', '--expect-revision', '2')['data']['handoff_id']
+        data = self.cli('resume', '--max-chars', '10000')['data']
+        hints = {h['id']: h['claimability'] for h in data['pending_handoffs']}
+        self.assertEqual(hints, {expiring: 'expired', stale: 'stale', current: 'requires_explicit_accept'})
+        (self.project / 'brief.txt').write_text('Changed brief', encoding='utf-8')
+        changed = self.cli('resume', '--max-chars', '10000')['data']
+        self.assertEqual(next(h for h in changed['pending_handoffs'] if h['id'] == current)['claimability'],
+                         'requires_reference_review')
+        self.assertIn('requires_reference_review', changed['text'])
+        for identifier in (expiring, stale, current):
+            receipt = self.cli('receipt', '--id', identifier)['data']
+            self.assertEqual(receipt['state'], 'open')
+            self.assertNotIn('claimability', receipt)
 
     def test_changed_input_withholds_memory_and_never_revalidates_next_step(self):
         self.save()

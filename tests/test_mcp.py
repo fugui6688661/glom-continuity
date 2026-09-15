@@ -174,3 +174,37 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             small = await client.call_tool('continuity_context', {'query': 'video', 'max_chars': 1800})
             self.assertTrue(small.is_error)
             self.assertEqual(small.structured_content['code'], 'BUDGET_TOO_SMALL')
+
+    async def test_legal_large_memory_can_recover_with_an_explicit_larger_budget(self):
+        self.cli('init', '--name', 'Large but legal habits')
+        references = []
+        for index in range(4):
+            items = [dict(id=f'p-{index}-{n}', kind='preference', title='Review',
+                          body='x' * 4000, when=['*'], status='active',
+                          source='Synthetic user request', expires_at=None) for n in range(16)]
+            name = f'habits-{index}.json'
+            raw = json.dumps(dict(format='continuity-memory-v1', items=items))
+            self.assertLess(len(raw.encode('utf-8')), 128 * 1024)
+            (self.project / name).write_text(raw, encoding='utf-8')
+            references.append(dict(path=name, role='memory'))
+        draft = dict(objective='Review only', next_action='Read current inputs',
+                     constraints=['No publishing'], decisions=[], unresolved=['Price unknown'],
+                     evidence=references)
+        (self.project / 'draft.json').write_text(json.dumps(draft), encoding='utf-8')
+        self.assertTrue(self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'),
+                                 '--expect-revision', '0')['ok'])
+        async with self.client() as client:
+            for name in ('continuity_context', 'continuity_resume'):
+                small = await client.call_tool(name, {'max_chars': 1000000})
+                self.assertTrue(small.is_error)
+                self.assertEqual(small.structured_content['code'], 'BUDGET_TOO_SMALL')
+                large = await client.call_tool(name, {'max_chars': 2000000})
+                self.assertFalse(large.is_error, str(large.content)[:300])
+                data = large.structured_content['data']
+                self.assertEqual(len(data['memory']['selected']), 64)
+                self.assertIn('No publishing', data['text'])
+                self.assertFalse(data['check']['semantic_completion_verified'])
+                encoded = json.dumps(large.model_dump(by_alias=True, exclude_unset=True),
+                                     ensure_ascii=False, separators=(',', ':'))
+                self.assertLessEqual(len(encoded) + 1, 2000000)
+        self.assertEqual(self.cli('status')['data']['revision'], 1)

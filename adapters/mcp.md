@@ -70,6 +70,10 @@ English: `from_file` is a regular JSON draft inside the bound project. Relative 
 
 `continuity_context.max_chars` 和 `continuity_resume.max_chars` 限制完整成功工具结果的字符数，包含文本、结构化内容两份表示及换行，不包括客户端负责的外层JSON-RPC封装。它与CLI stdout预算的边界不同；都不是模型token预算。无法容纳时返回`BUDGET_TOO_SMALL`，不悄悄截掉限制。错误反馈本身不受极小成功预算限制。
 
+dev3 修正了保存容量与读取预算不一致：`max_chars` 接受严格正整数，不再额外限制为100万字符。默认仍为6000，不自动放大，也不按传入预算预分配内存。大预算可能把很长的正文交给宿主；优先缩短通用习惯、按任务登记和检索流程，仅在宿主可以容纳且用户范围允许时显式提高。它不绕过客户端自身的响应或上下文限制。
+
+`resume` 的交接摘要保留原 `state: open`，另有读取时的 `claimability` 提示：`expired`、`stale`、`requires_reference_review` 或 `requires_explicit_accept`。这是避免误领的提示，不是权限；实际领取仍重查全部条件，旧 receipt 和数据库状态不被恢复操作修改。
+
 开发版 dev2 的同一 `continuity_context` 另接受可选 `query`（最多2000字符），用于从当前 checkpoint 的 `memory` 角色文件中按字面关键词恢复习惯/流程。不增加工具数量，不自动学习，不绕过只读设置。详见[项目记忆](../docs/project-memory.md)。未登记记忆的旧项目保持原有 context 输出；Alpha.5 不支持此参数/角色，不要混用版本。
 
 引用检查只证明检查时的文件状态，不证明内容正确。`needs_review`必须复核；`no_references`只能恢复无文件证据的规划。只读MCP服务器不是OS沙箱；同一系统用户仍是信任边界。

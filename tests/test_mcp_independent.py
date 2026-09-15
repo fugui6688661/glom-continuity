@@ -379,7 +379,9 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
 
     async def test_10_sdk_argument_rejection_preserves_server_and_revision(self):
         self.seed()
-        cases = [("continuity_context", {"max_chars": n}) for n in (True, "6000", 1.2, 0, -1, 1000001)]
+        # Positive budgets above 1M are now valid: legal saved memory can require
+        # a larger complete response. Type/positivity errors remain rejected.
+        cases = [("continuity_context", {"max_chars": n}) for n in (True, "6000", 1.2, 0, -1)]
         cases += [("continuity_checkpoint", {"from_file": str(self.project / "checkpoint.json"), "expect_revision": True}),
                   ("continuity_checkpoint", {"from_file": str(self.project / "checkpoint.json")}),
                   ("continuity_accept", {"id": "", "recipient": "x"}),
