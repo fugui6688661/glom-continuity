@@ -46,7 +46,7 @@ startup_timeout_sec = 15
 tool_timeout_sec = 15
 ```
 
-配置作用范围和审批遵循[客户端官方MCP说明](https://learn.chatgpt.com/docs/extend/mcp)。本包不修改全局配置，不自动启用写操作。`--allow-writes`只增加下表五个项目状态工具，不授予浏览器、邮件、支付或部署权限，也不会覆盖宿主已有权限。
+配置作用范围和审批遵循[客户端官方MCP说明](https://learn.chatgpt.com/docs/extend/mcp)。本包不修改全局配置，不自动启用写操作。`--allow-writes`只增加下表项目状态工具，不授予浏览器、邮件、支付或部署权限，也不会覆盖宿主已有权限。按实际发现的工具判断版本能力，不能凭新版说明要求旧包提供新工具。
 
 ## 工具和边界
 
@@ -57,6 +57,9 @@ tool_timeout_sec = 15
 | `continuity_context` | `continuity_handoff` |
 | `continuity_receipt` | `continuity_accept`、`continuity_export` |
 | `continuity_resume`（dev3） | 不增加写工具 |
+| `continuity_doctor`（dev4） | `continuity_return_work`（dev4） |
+
+dev4 的 `continuity_doctor()` 只诊断当前程序和选定存储，不初始化或修复。`ok:true` 后仍检查 `storage.compatible`，`write_tools_enabled` 说明本服务器实际启用的写工具。诊断的版本、来源URL和哈希不是发布者认证。`continuity_return_work(id, recipient, from_file, expect_revision)` 显式保存带有产物引用的六字段草案，绑定已领取交接；相对文件路径仍以项目根为准。回执 `result.state:saved` 是存档而非成品验收，`not_recorded` 不排除普通检查点或未保存文件。完整流程见[成果回存](../docs/result-return.md)。
 
 dev3 可优先使用 `continuity_resume(query="视频", max_chars=12000)`：在一次只读调用内分清尚未初始化、没有保存节点、需要复核、无文件引用的规划、已恢复记录，并返回适用习惯与待接交接。它不初始化、不保存、不领取交接、不执行任务。`restored` 仅表示记录已恢复，不表示成果验收通过。旧版未公布此工具时仍用 status → check → context，首次保存前不要调用 context。
 

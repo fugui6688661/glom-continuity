@@ -1,13 +1,13 @@
 {
   "name": "glom-continuity",
-  "version": "0.1.0-dev.3",
+  "version": "0.1.0-dev.4",
   "description": "Local project checkpoints and reviewable handoffs across AI assistants.",
   "author": {
     "name": "GLOM contributors"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "Continuity",
+    "displayName": "Recaloom · 续珞",
     "shortDescription": "Resume a project without losing its next step.",
     "longDescription": "Save project checkpoints, check referenced files, and exchange explicit handoffs. Local-only alpha; no model calls or completion authority.",
     "developerName": "GLOM contributors",

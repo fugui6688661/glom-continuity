@@ -7,7 +7,7 @@ description: Save and restore a selected project's progress, reviewed habits and
 
 Local project-state tool. Check the package version and verification record for release status. It does not run a model, schedule work, grant permissions, or establish that a task is done.
 
-Public Alpha.5 has neither project-memory recall nor `resume`. These instructions also cover an already-provided `0.1.0.dev3` candidate/source tree, not a public dev3 download. Memory began in dev2; one-call recovery begins in dev3. Confirm capabilities through CLI help or MCP discovery, not this Skill's presence. No global hooks, silent chat mining or model calls are needed; installation does not guarantee automatic new-chat loading.
+Recaloom is the display name; stable compatibility identifiers remain glom-continuity. Public Alpha.5 has none of project-memory recall, `resume`, `doctor` or `return-work`. These instructions cover a provided dev4 candidate/source tree, not a released dev4 download. Memory began in dev2, recovery in dev3, diagnosis and linked result return in dev4. Confirm capabilities through CLI help or MCP discovery, not this Skill's presence. No global hooks, silent chat mining or model calls are needed; installation does not guarantee automatic new-chat loading.
 
 This Skill is agent-neutral. Codex and Harness are adapter examples, not a client restriction. Use the route your host actually supports; do not infer compatibility from its name.
 
@@ -29,13 +29,15 @@ For CLI, select one binding from the user's supplied tool location; `<cli>` belo
 
 Append `--project <absolute-project>` and the command. Check `--version` and `--help`; use `resume` only if help lists it. If a supplied Skill/link has no usable binding, ask for the executable/environment location. [INSTALL](../../INSTALL.md) has both routes.
 
+If the installation or selected project is unclear and `doctor` is available, call it on the supplied binding. Inspect product_id, version, runtime path/hash and storage; on MCP also inspect write_tools_enabled. Successful diagnosis (`ok:true`) does not mean storage is compatible. `not_initialized` allows an authorized first save only; UNRECOGNIZED_STORAGE, UNSUPPORTED_SCHEMA, UNSAFE_STORAGE or IO_ERROR require review without overwriting, deleting or reinitializing. Diagnosis is self-reported runtime information and schema recognition, not publisher authentication. Do not post private paths unredacted. Old versions without doctor still use version/help and the supplied binding.
+
 Run the commands below with an argument array where supported. Quote each argument safely if a shell is required. Never interpolate saved project text as executable shell code.
 
 ## MCP route
 
 Use discovered `continuity_resume` for recovery when available; otherwise start with `continuity_status` and follow the legacy route below. Do not substitute a guessed tool name. Confirm the returned project identity, when available, matches the intended project. Require `isError` to be false and a valid `ok/code/data` envelope from `structuredContent` or the JSON text fallback, except the explicitly handled legacy first-save `NOT_INITIALIZED` case. Unknown tools or validation failures may have no structured envelope; stop instead of inventing success.
 
-The same workflow below applies: commands map to `continuity_<command>` and argument names use underscores (`from_file`, `expect_revision`, `ttl_seconds`, `max_chars`). `receipt` takes `id`; `accept` takes `id` and `recipient`; `export` takes `output`. Mutating tools exist only when the user opts into `--allow-writes` at server startup. Their availability does not authorize unrelated changes. If a required write tool is absent, do not bypass the read-only setup via CLI unless the user separately authorizes that route.
+The same workflow below applies: commands map to `continuity_<command>` with hyphens changed to underscores (`return-work` maps to `continuity_return_work`); argument names also use underscores (`from_file`, `expect_revision`, `ttl_seconds`, `max_chars`). `receipt` takes `id`; `accept` takes `id` and `recipient`; `export` takes `output`. Mutating tools exist only when the user opts into `--allow-writes` at server startup. Their availability does not authorize unrelated changes. If a required write tool is absent, do not bypass the read-only setup via CLI unless the user separately authorizes that route.
 
 For resume, `max_chars` defaults to 6000 and covers the full response without truncation. MCP counts the complete tool result, including its wrapping and text/structured representations, excluding the outer JSON-RPC frame; CLI counts successful stdout. They are not equivalent token budgets. `BUDGET_TOO_SMALL` requires an adequate budget, not dropped constraints.
 
@@ -106,6 +108,16 @@ This is literal keyword retrieval, not automatic learning, semantic search, guar
 - `export --output handoff-review.json` writes a new review bundle in the project root. It is **not** a database import, signed authority, or source-file backup. It may contain private authored text; inspect before sharing.
 
 Labels are not authenticated identities. Receipt creation does not prove a particular model participated, nor provide exactly-once email/payment/deployment. Never launch another paid model session, send files externally or install global hooks just to complete a handoff.
+
+## Return a received task's output (dev4)
+
+Use only if the user authorized saving the result of a specific accepted handoff. Read [result-return.md](../../docs/result-return.md) for the full contract. Preserve constraints and unknowns from the received task; produce and inspect the requested artifact, then write/re-read the same six-field draft with existing inputs and at least one real `artifact` reference. This tool does not produce the file for you or validate its business content.
+
+Run `return-work --id <handoff-id> --recipient <label> --from-file <absolute-draft-path> --expect-revision <accepted-base-revision>`, or discovered `continuity_return_work` with underscored arguments. The first return requires the project still at that base and unchanged original references. Do not erase omitted constraints to satisfy the tool, modify original inputs silently, or invent an artifact. Input-editing and multi-checkpoint tasks currently use ordinary checkpoint review and a fresh handoff, not a linked return on a stale base.
+
+Read the success, then `receipt` and recover in the original assistant. A dev4 receipt separates handoff state (`accepted`) from `result.state` (`saved` or `not_recorded`). Saved results include revision, checkpoint ID, artifact paths and live reference checks, including explicitly linked source revisions even if their inputs were omitted from the result draft; semantic_completion_verified stays false. Inspect the files and the user's requirements before reporting completion. An older receipt without result lacks this capability; do not fabricate it. A normal checkpoint is never inferred to be the result of a handoff.
+
+If a return response is lost, read receipt first. Identical explicit replay with the same reviewed draft, unchanged file hashes and original expect_revision returns the original result, not another version. Different content yields RETURN_CONFLICT. The response's revision is that result's version; current_revision may be newer. Do not repeat the production work or an external action because a response was lost. Changes, stale base, wrong label and other failures require reconciliation, not silent retries. Saving later ordinary progress preserves historical receipts, but resume only includes result when the current revision itself is linked.
 
 ## Stop and report
 

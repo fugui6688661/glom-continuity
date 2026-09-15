@@ -205,7 +205,9 @@ class RecoveryIndependentTests(unittest.TestCase):
         damaged = self.snapshots()
         for args in self.nine_calls(identifier):
             with self.subTest(command=args[0]):
-                self.cli(*args, code="ALREADY_INITIALIZED" if args[0] == "init" else "NOT_INITIALIZED")
+                # Existing storage with a missing DB is not a new project.
+                # dev4 intentionally distinguishes it from NOT_INITIALIZED.
+                self.cli(*args, code="ALREADY_INITIALIZED" if args[0] == "init" else "UNRECOGNIZED_STORAGE")
                 self.assertEqual(self.snapshots(), damaged)
         restored = self.root / "restored-new-location"
         shutil.copytree(backup, restored)

@@ -32,6 +32,8 @@ def build_server(project: Path, allow_writes: bool = False):
     def invoke(command, **arguments):
         try:
             data = continuity.execute(argparse.Namespace(project=str(project), command=command, **arguments))
+            if command == 'doctor':
+                data['write_tools_enabled'] = allow_writes
             envelope = {'ok': True, 'code': 'OK', 'data': data}
         except continuity.Fault as exc:
             envelope = {'ok': False, 'code': exc.code, 'data': None, 'error': exc.message}
@@ -50,6 +52,11 @@ def build_server(project: Path, allow_writes: bool = False):
                 return CallToolResult(content=[TextContent(type='text', text=continuity.wire(error))],
                                       structured_content=error, is_error=True)
         return result
+
+    @server.tool(annotations=read)
+    def continuity_doctor() -> CallToolResult:
+        """Identify this invoked Recaloom/glom-continuity runtime, project format and enabled write tools. Read-only diagnosis, not authentication or proof of healthy artifacts; never repairs or initializes."""
+        return invoke('doctor')
 
     @server.tool(annotations=read)
     def continuity_status() -> CallToolResult:
@@ -116,6 +123,18 @@ def build_server(project: Path, allow_writes: bool = False):
         ) -> CallToolResult:
             """Accept an authorized project handoff once, rechecking revision, expiry and references. A receipt grants no external permissions."""
             return invoke('accept', id=id, recipient=recipient)
+
+        @server.tool(annotations=write)
+        def continuity_return_work(
+            id: Annotated[str, Field(strict=True, min_length=1, max_length=80)],
+            recipient: Annotated[str, Field(strict=True, min_length=1, max_length=80)],
+            from_file: Annotated[str, Field(strict=True, min_length=1, max_length=4096,
+                description='Reviewed result draft JSON, relative to the bound project root or absolute within it.')],
+            expect_revision: Annotated[int, Field(strict=True, ge=0)],
+        ) -> CallToolResult:
+            """Save an artifact-bearing checkpoint linked to an accepted handoff. Does not certify correctness or run external actions. Identical replay returns the original saved revision; conflicts require review, never a blind retry."""
+            return invoke('return-work', id=id, recipient=recipient,
+                          from_file=str(project / from_file), expect_revision=expect_revision)
 
         @server.tool(annotations=write)
         def continuity_export(output: Annotated[str, Field(strict=True, min_length=1, max_length=160)]) -> CallToolResult:

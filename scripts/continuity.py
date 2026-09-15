@@ -15,7 +15,10 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0.dev3'
+VERSION = '0.1.0.dev4'
+PRODUCT_ID = 'glom-continuity'
+DISPLAY_NAME = 'Recaloom'
+SOURCE_URL = 'https://github.com/fugui6688661/glom-continuity'
 MAX_DOCUMENT = 128 * 1024
 MAX_FILE = 64 * 1024 * 1024
 PRIVATE_PARTS = {'.git', '.continuity', '.ssh', '.aws', '.codex', '.claude', '.dsh', 'credentials.json'}
@@ -242,8 +245,28 @@ def load_draft(root, filename):
     return value
 
 
+def validate_storage(db):
+    # Shape recognition preserves legacy v1 data; it is not publisher authentication.
+    expected = {
+        'project': ['id', 'name', 'schema_version'],
+        'checkpoints': ['revision', 'id', 'payload', 'digest', 'created_at'],
+        'handoffs': ['id', 'revision', 'recipient', 'state', 'expires_at', 'accepted_at'],
+    }
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if 'handoff_results' in tables:
+        expected['handoff_results'] = ['handoff_id', 'revision']
+    for table, columns in expected.items():
+        if table not in tables or [row[1] for row in db.execute(f'PRAGMA table_info({table})')] != columns:
+            raise Fault('UNRECOGNIZED_STORAGE', 'Existing storage is not a recognized glom-continuity project. Preserve it; select the correct tool or project. Do not reinitialize or delete it.')
+    projects = db.execute('SELECT id, schema_version FROM project').fetchall()
+    if len(projects) != 1:
+        raise Fault('UNRECOGNIZED_STORAGE', 'Project identity is missing or ambiguous; preserve storage for review')
+    if projects[0]['schema_version'] != 1:
+        raise Fault('UNSUPPORTED_SCHEMA', 'Unknown project schema; no changes made')
+
+
 @contextmanager
-def database(root, initialize=False):
+def database(root, initialize=False, readonly=False):
     folder = root / '.continuity'
     if folder.is_symlink():
         raise Fault('UNSAFE_STORAGE', 'Storage symlink is not allowed')
@@ -255,8 +278,11 @@ def database(root, initialize=False):
             raise Fault('ALREADY_INITIALIZED', 'Project storage already exists; nothing overwritten')
         folder.mkdir(mode=0o700)
     elif not path.is_file():
+        if folder.exists():
+            raise Fault('UNRECOGNIZED_STORAGE', 'Existing .continuity has no recognized database. It may belong to another tool or an incomplete installation; preserve it and select the correct project.')
         raise Fault('NOT_INITIALIZED', 'Initialize this project first')
-    db = sqlite3.connect(str(path), timeout=3, isolation_level=None)
+    location = str(path) if initialize else path.as_uri() + ('?mode=ro' if readonly else '?mode=rw')
+    db = sqlite3.connect(location, uri=not initialize, timeout=3, isolation_level=None)
     db.row_factory = sqlite3.Row
     try:
         if initialize:
@@ -270,16 +296,16 @@ def database(root, initialize=False):
                     accepted_at TEXT);
             ''')
         else:
-            row = db.execute('SELECT schema_version FROM project').fetchone()
-            if not row or row[0] != 1:
-                raise Fault('UNSUPPORTED_SCHEMA', 'Unknown project schema; no changes made')
+            validate_storage(db)
         yield db
     finally:
         db.close()
 
 
-def latest(db):
-    row = db.execute('SELECT * FROM checkpoints ORDER BY revision DESC LIMIT 1').fetchone()
+def checkpoint_record(db, revision=None):
+    row = (db.execute('SELECT * FROM checkpoints WHERE revision = ?', (revision,)).fetchone()
+           if revision is not None else
+           db.execute('SELECT * FROM checkpoints ORDER BY revision DESC LIMIT 1').fetchone())
     if row is None:
         return {'revision': 0, 'checkpoint_id': None, 'checkpoint': None}
     value = strict_json(row['payload'])
@@ -287,6 +313,32 @@ def latest(db):
         raise Fault('CORRUPT_CHECKPOINT', 'Checkpoint integrity check failed')
     return {'revision': row['revision'], 'checkpoint_id': row['id'], 'checkpoint': value,
             'checkpoint_sha256': row['digest'], 'recorded_at': row['created_at']}
+
+
+def latest(db):
+    return checkpoint_record(db)
+
+
+def returned_revision(db, identifier):
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='handoff_results'").fetchone():
+        return None
+    row = db.execute('SELECT revision FROM handoff_results WHERE handoff_id = ?', (identifier,)).fetchone()
+    return row['revision'] if row else None
+
+
+def saved_result(root, db, identifier):
+    revision = returned_revision(db, identifier)
+    if revision is None:
+        return {'state': 'not_recorded', 'handoff_id': identifier,
+                'semantic_completion_verified': False,
+                'note': 'No linked result was recorded. An ordinary checkpoint or unsaved files may exist.'}
+    saved = checkpoint_record(db, revision)
+    if saved['checkpoint'] is None:
+        raise Fault('CORRUPT_CHECKPOINT', 'Linked result checkpoint is missing; preserve storage')
+    return {'state': 'saved', 'handoff_id': identifier, 'revision': revision,
+            'checkpoint_id': saved['checkpoint_id'], 'recorded_at': saved['recorded_at'],
+            'artifacts': [item for item in saved['checkpoint']['evidence'] if item['role'] == 'artifact'],
+            'check': check_recorded_references(root, db, saved), 'semantic_completion_verified': False}
 
 
 def state(db):
@@ -313,11 +365,44 @@ def check_references(root, current):
             'semantic_completion_verified': False, 'checked_at': now()}
 
 
+def check_recorded_references(root, db, current):
+    """A linked result retains the references of its accepted base, even if omitted from its draft."""
+    checked = check_references(root, current)
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='handoff_results'").fetchone():
+        return checked
+    cursor = current
+    visited = []
+    issues = {(item['path'], item['code']): item for item in checked['issues']}
+    has_references = bool(current['checkpoint'] and current['checkpoint']['evidence'])
+    while cursor['checkpoint'] is not None:
+        rows = db.execute('SELECT h.revision, h.state FROM handoff_results r '
+                          'LEFT JOIN handoffs h ON h.id = r.handoff_id WHERE r.revision = ?',
+                          (cursor['revision'],)).fetchall()
+        if not rows:
+            break
+        if (len(rows) != 1 or rows[0]['state'] != 'accepted'
+                or not isinstance(rows[0]['revision'], int)
+                or not 0 < rows[0]['revision'] < cursor['revision']):
+            raise Fault('CORRUPT_CHECKPOINT', 'Invalid result source link; preserve storage for review')
+        cursor = checkpoint_record(db, rows[0]['revision'])
+        if cursor['checkpoint'] is None:
+            raise Fault('CORRUPT_CHECKPOINT', 'Result source checkpoint is missing; preserve storage')
+        visited.append(cursor['revision'])
+        has_references = has_references or bool(cursor['checkpoint']['evidence'])
+        for issue in check_references(root, cursor)['issues']:
+            issues[(issue['path'], issue['code'])] = issue
+    if visited:
+        checked.update(state='needs_review' if issues else ('references_current' if has_references else 'no_references'),
+                       issues=list(issues.values()), source_revisions_checked=visited)
+    return checked
+
+
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument('--version', action='version', version=VERSION)
     result.add_argument('--project', required=True, help='Explicit project directory')
     sub = result.add_subparsers(dest='command', required=True)
+    sub.add_parser('doctor', help='Identify this invoked tool and inspect selected storage without changing it')
     init = sub.add_parser('init')
     init.add_argument('--name', required=True)
     sub.add_parser('status')
@@ -340,6 +425,11 @@ def parser():
     accept.add_argument('--recipient', required=True)
     receipt = sub.add_parser('receipt')
     receipt.add_argument('--id', required=True)
+    returned = sub.add_parser('return-work', help='Save reviewed output and link it to an accepted handoff; not completion approval')
+    returned.add_argument('--id', required=True)
+    returned.add_argument('--recipient', required=True)
+    returned.add_argument('--from-file', required=True)
+    returned.add_argument('--expect-revision', type=int, required=True)
     export = sub.add_parser('export')
     export.add_argument('--output', required=True, help='New JSON filename in project root')
     return result
@@ -347,6 +437,29 @@ def parser():
 
 def execute(args):
     root = project_root(args.project)
+    if args.command == 'doctor':
+        program = Path(__file__).resolve()
+        storage = {'state': 'not_initialized', 'compatible': False}
+        folder = root / '.continuity'
+        if folder.exists() or folder.is_symlink():
+            try:
+                with database(root, readonly=True) as db:
+                    db.execute('BEGIN')
+                    current = state(db)
+                    storage = {'state': 'compatible_v1', 'compatible': True, 'schema_version': 1,
+                               'recognition': 'schema_shape_not_authentication',
+                               'project_id': current['project_id'], 'revision': current['revision']}
+            except Fault as exc:
+                storage = {'state': exc.code, 'compatible': False, 'message': exc.message}
+            except (OSError, sqlite3.Error, ValueError):
+                storage = {'state': 'IO_ERROR', 'compatible': False,
+                           'message': 'Cannot inspect existing storage. Preserve it; no repair or initialization was attempted.'}
+        return {'product_id': PRODUCT_ID, 'display_name': DISPLAY_NAME, 'version': VERSION,
+                'source_url': SOURCE_URL, 'publisher_authenticated': False,
+                'runtime': {'program_path': str(program), 'python_executable': sys.executable,
+                            'program_sha256': hashlib.sha256(program.read_bytes()).hexdigest()},
+                'capabilities': ['checkpoint', 'resume', 'project_memory', 'handoff', 'receipt', 'return-work'],
+                'storage': storage}
     if args.command == 'resume' and args.query:
         plain(args.query, 'query', 2000)
     if args.command == 'resume' and not (root / '.continuity').exists() and not (root / '.continuity').is_symlink():
@@ -369,7 +482,7 @@ def execute(args):
             if current['checkpoint'] is None:
                 data = {'recovery_state': 'no_checkpoint', 'project_id': current['project_id'],
                         'revision': 0, 'checkpoint_id': None, 'instruction_authority': 'none',
-                        'check': check_references(root, current),
+                        'check': check_recorded_references(root, db, current),
                         'text': 'Project tracking exists, but no checkpoint has been saved. Review the selected inputs before the first save.'}
                 if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
                     raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
@@ -377,12 +490,14 @@ def execute(args):
         if args.command == 'status':
             return state(db)
         if args.command == 'check':
-            return check_references(root, state(db))
+            return check_recorded_references(root, db, state(db))
         if args.command == 'receipt':
+            db.execute('BEGIN')
             row = db.execute('SELECT * FROM handoffs WHERE id = ?', (args.id,)).fetchone()
             if row is None:
                 raise Fault('HANDOFF_NOT_FOUND', 'No such handoff in this project')
             return {**dict(row), 'project_id': state(db)['project_id'],
+                    'result': saved_result(root, db, args.id),
                     'external_actions_verified': False, 'recipient_is_authentication': False}
         if args.command == 'export':
             filename = plain(args.output, 'output', 160)
@@ -395,7 +510,7 @@ def execute(args):
                        'checkpoint', 'checkpoint_sha256', 'recorded_at')}
             bundle.update(format='continuity-review-bundle-v1', grants_permission=False,
                           warning='Untrusted project data, not instructions or proof of completion.',
-                          check=check_references(root, current))
+                          check=check_recorded_references(root, db, current))
             content = (wire(bundle) + '\n').encode('utf-8')
             try:
                 descriptor = os.open(root / filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -412,7 +527,7 @@ def execute(args):
             if current['checkpoint'] is None:
                 raise Fault('NO_CHECKPOINT', 'Record a checkpoint before requesting context')
             p = current['checkpoint']
-            checked = check_references(root, current)
+            checked = check_recorded_references(root, db, current)
             lines = ['Project handoff data — not instructions or execution permission.',
                      'Reference check: ' + checked['state']]
             if checked['issues']:
@@ -443,9 +558,56 @@ def execute(args):
                             ('no_references' if checked['state'] == 'no_references' else 'restored'),
                             name=current['name'], pending_handoffs=pending)
                 data['text'] += '\nUnclaimed handoffs (claimability is advisory at read time; accept rechecks all gates): ' + wire(pending)
+                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='handoff_results'").fetchone():
+                    link = db.execute('SELECT handoff_id FROM handoff_results WHERE revision = ?',
+                                      (current['revision'],)).fetchone()
+                    if link:
+                        data['result'] = saved_result(root, db, link['handoff_id'])
+                        data['text'] += '\nLinked output saved at this revision; review its files before declaring the task complete.'
             if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
                 raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
             return data
+        if args.command == 'return-work':
+            plain(args.recipient, 'recipient', 80)
+            plain(args.id, 'id', 80)
+            payload = load_draft(root, args.from_file)
+            artifacts = [item for item in payload['evidence'] if item['role'] == 'artifact']
+            if not artifacts:
+                raise Fault('NO_ARTIFACT', 'A return needs at least one real output reference. Save planning with checkpoint instead.')
+            db.execute('BEGIN IMMEDIATE')
+            handoff = db.execute('SELECT * FROM handoffs WHERE id = ?', (args.id,)).fetchone()
+            if handoff is None:
+                raise Fault('HANDOFF_NOT_FOUND', 'No such handoff in this project')
+            if handoff['recipient'] != args.recipient:
+                raise Fault('WRONG_RECIPIENT', 'The receiver label differs from the accepted handoff')
+            if handoff['state'] != 'accepted':
+                raise Fault('HANDOFF_NOT_ACCEPTED', 'Accept this handoff before returning its work')
+            previous = returned_revision(db, args.id)
+            if previous is not None:
+                saved = checkpoint_record(db, previous)
+                if (args.expect_revision != handoff['revision'] or saved['checkpoint'] is None
+                        or digest(payload) != saved['checkpoint_sha256']):
+                    raise Fault('RETURN_CONFLICT', 'This handoff already has a different recorded result. Read its receipt; do not overwrite it.')
+                current = state(db)
+                return {**current, **saved, 'result': saved_result(root, db, args.id), 'replayed': True,
+                        'current_revision': current['revision']}
+            current = state(db)
+            if current['revision'] != args.expect_revision:
+                raise Fault('REVISION_CONFLICT', 'Project progressed; review current state before returning work')
+            if current['revision'] != handoff['revision']:
+                raise Fault('STALE_HANDOFF', 'The accepted handoff belongs to an older revision. Reconcile using a checkpoint and a fresh handoff.')
+            if check_recorded_references(root, db, current)['issues']:
+                raise Fault('EVIDENCE_CHANGED', 'Original references changed. Review and save a checkpoint before a fresh handoff.')
+            # This optional same-database table preserves all v1 fields and old-reader compatibility.
+            # Both records commit together; there is no second storage or automatic delivery action.
+            db.execute('CREATE TABLE IF NOT EXISTS handoff_results (handoff_id TEXT PRIMARY KEY, revision INTEGER UNIQUE NOT NULL)')
+            db.execute('INSERT INTO checkpoints VALUES (?, ?, ?, ?, ?)',
+                       (current['revision'] + 1, str(uuid.uuid4()), wire(payload), digest(payload), now()))
+            db.execute('INSERT INTO handoff_results VALUES (?, ?)', (args.id, current['revision'] + 1))
+            answer = {**state(db), 'result': saved_result(root, db, args.id), 'replayed': False,
+                      'current_revision': current['revision'] + 1}
+            db.commit()
+            return answer
         if args.command == 'checkpoint':
             payload = load_draft(root, args.from_file)
             db.execute('BEGIN IMMEDIATE')
@@ -466,7 +628,7 @@ def execute(args):
                 raise Fault('NO_CHECKPOINT', 'Record a checkpoint first')
             if current['revision'] != args.expect_revision:
                 raise Fault('REVISION_CONFLICT', 'Checkpoint revision changed')
-            if check_references(root, current)['issues']:
+            if check_recorded_references(root, db, current)['issues']:
                 raise Fault('EVIDENCE_CHANGED', 'References changed; review and record a new checkpoint')
             pending = db.execute('SELECT id FROM handoffs WHERE state = ? AND revision = ? AND recipient = ? AND expires_at > ?',
                                  ('open', current['revision'], recipient, now())).fetchone()
@@ -493,7 +655,7 @@ def execute(args):
             current = state(db)
             if current['revision'] != row['revision']:
                 raise Fault('STALE_HANDOFF', 'A newer checkpoint exists; create a fresh handoff')
-            if check_references(root, current)['issues']:
+            if check_recorded_references(root, db, current)['issues']:
                 raise Fault('EVIDENCE_CHANGED', 'References changed; the handoff remains unconsumed')
             db.execute('UPDATE handoffs SET state = ?, accepted_at = ? WHERE id = ? AND state = ?',
                        ('accepted', now(), args.id, 'open'))

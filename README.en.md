@@ -1,6 +1,10 @@
-# glom-continuity
+# Recaloom
 
-This source tree is preparing a stable release (`0.1.0.dev3`, not publicly released). Download links below still point to immutable Alpha.5 assets, without development memory or `resume`. New features require an already-provided dev3 candidate or source tree. The preview will not be relabeled as a stable release.
+Formerly glom-continuity. The repository, package name, commands, MCP tool names and project storage remain compatible. Existing users do not need to migrate or reinitialize their projects. The new brand is not a stable-release announcement.
+
+This source tree is preparing a stable release (`0.1.0.dev4`, no released download for this version). Download links below still point to immutable Alpha.5 assets, without development memory, `resume`, `doctor` or `return-work`. New features require a matching candidate or source tree. The preview will not be relabeled as a stable release.
+
+New in this source version: [installation diagnosis and linked result return](docs/result-return.md). Identify the invoked runtime; save a receiver's output against its handoff so the original assistant can recover the files, revision and reference changes. Ordinary checkpoints remain available without a second assistant or handoff.
 
 Development supports [project habits and workflows](docs/project-memory.md) with one assistant. Dev3's read-only `resume` returns recovery state, checks, context, selected memories and pending handoffs in one call. Workflows use literal keywords; candidate, retired/expired notes and changed references are not silently reused. It does not save, accept handoffs, grant permissions, scan chats, train a model or guarantee startup hooks. The detailed memory walkthrough is in Chinese; [installation essentials](INSTALL.md) are bilingual.
 

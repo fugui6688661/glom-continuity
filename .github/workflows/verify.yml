@@ -88,7 +88,8 @@ jobs:
                   'ALREADY_INITIALIZED NOT_INITIALIZED UNSUPPORTED_SCHEMA CORRUPT_CHECKPOINT '
                   'HANDOFF_NOT_FOUND NO_CHECKPOINT OUTPUT_EXISTS BUDGET_TOO_SMALL REVISION_CONFLICT '
                   'EVIDENCE_CHANGED HANDOFF_EXISTS WRONG_RECIPIENT ALREADY_ACCEPTED HANDOFF_EXPIRED '
-                  'STALE_HANDOFF UNKNOWN_COMMAND').split())
+                  'STALE_HANDOFF UNKNOWN_COMMAND UNRECOGNIZED_STORAGE NO_ARTIFACT '
+                  'HANDOFF_NOT_ACCEPTED RETURN_CONFLICT').split())
               codes = sorted(set(re.findall(r'\b[A-Z][A-Z_]+\b', message)) & known_codes)
               codes += [label.upper() + '_' + number for label, number in re.findall(r'\[(Errno|WinError) (\d{1,6})\]', message)]
               if 'Coverage gap: did not actually SIGKILL' in message:
