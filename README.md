@@ -55,7 +55,7 @@ Windows 命令可用 `py -3` 替代 `python3`；已在 GitHub Windows runner 跑
 
 把项目位置、工具位置和[通用 Skill](skills/project-continuity/SKILL.md)交给有权限的助手。例如：“保存这个项目的目标、限制、待确认问题和下一步。”下次说：“恢复这个项目，按‘视频’找适用流程，先告诉我资料是否变化、接下来能做什么。”安装本身不会给新聊天自动加载记忆；不需要全局钩子或导入聊天。
 
-已提供的 dev3 候选/源码，经 `--help` 确认存在 `resume` 后，在工具目录可运行：
+使用 dev4 候选/当前源码（`resume` 从 dev3 开始提供），经 `--help` 确认命令存在后，在工具目录可运行：
 
 ```sh
 python3 -B scripts/continuity.py --project /absolute/path/to/project resume --query "视频" --max-chars 10000

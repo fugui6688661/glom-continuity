@@ -53,7 +53,7 @@ Agent-neutral, without a vendor allowlist. Tool discovery, tool calls, and corre
 
 Supply the selected project, tool location and [generic Skill](skills/project-continuity/SKILL.md). Try: “Save this project's goal, constraints, unresolved questions and next step.” Next session: “Recover this project, look up workflows for ‘video’, and tell me what changed and what I can do next.” Installation alone does not load new chats automatically; no global hook or chat import is needed.
 
-With an already-provided dev3 candidate/source tree, first confirm `resume` appears in `--help`, then run from the tool directory:
+With a dev4 candidate or the current source tree (`resume` was introduced in dev3), first confirm the command appears in `--help`, then run from the tool directory:
 
 ```sh
 python3 -B scripts/continuity.py --project /absolute/project resume --query "video" --max-chars 10000
