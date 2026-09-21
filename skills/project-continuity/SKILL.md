@@ -100,6 +100,8 @@ For registered memory, pass current task keywords as `query` to the capability-s
 
 This is literal keyword retrieval, not automatic learning, semantic search, guaranteed host startup hooks or full chat memory. Older packages reject role `memory`/query; check version/help instead of silently downgrading it to an ordinary input (which would omit recall). Do not claim this development feature is in public Alpha.5.
 
+When the user asks to turn task experience into a reusable workflow, read [field-lessons.md](../../docs/field-lessons.md). Keep the applicable conditions, failure evidence and unresolved limits; an inferred lesson remains candidate until project-specific review. Do not turn one success into a global rule, import private material into a public contribution, or treat active memory as independently verified correctness.
+
 ## Handoff and receipt
 
 - With a user-approved recipient label: `handoff --recipient <label> --expect-revision <revision> [--ttl-seconds 3600]`.

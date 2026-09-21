@@ -2,7 +2,14 @@
 
 Formerly glom-continuity. The repository, package name, commands, MCP tool names and project storage remain compatible. Existing users do not need to migrate or reinitialize their projects. The new brand is not a stable-release announcement.
 
-This source tree is preparing a stable release (`0.1.0.dev4`, no released download for this version). Download links below still point to immutable Alpha.5 assets, without development memory, `resume`, `doctor` or `return-work`. New features require a matching candidate or source tree. The preview will not be relabeled as a stable release.
+## Choose the version first
+
+| Entry | Available scope |
+|---|---|
+| [Alpha.5 download](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) | Project checkpoints, reference checks and handoffs; developer preview, not stable |
+| Current `main` source (`0.1.0.dev4`) | Also project habits/workflows, `resume`, `doctor` and `return-work`; no released download for this version. See [verification](docs/verification.md) for measured scope. |
+
+Start with the Alpha.5 synthetic demo, or select an explicit source revision through [INSTALL](INSTALL.md) to try development features. Updating repository documentation does not upgrade an installed package or turn a preview into a stable release.
 
 New in this source version: [installation diagnosis and linked result return](docs/result-return.md). Identify the invoked runtime; save a receiver's output against its handoff so the original assistant can recover the files, revision and reference changes. Ordinary checkpoints remain available without a second assistant or handoff.
 
@@ -15,6 +22,8 @@ A local checkpoint and handoff tool for AI-assisted projects. Save goals, decisi
 “The currency is unconfirmed. Do not delete source records.” Save those details with the next step so a fresh session can recover them. Changed inputs block the old handoff until reviewed.
 
 [中文](README.md) · [MCP setup](adapters/mcp.md) · [Verification](docs/verification.md) · [Security](SECURITY.md)
+
+[Reviewed project workflows](docs/field-lessons.md#english-summary) · [Share a trial](https://github.com/fugui6688661/glom-continuity/issues/new?template=field_trial.yml)
 
 **0.1.0-alpha.5 · Developer preview, not a stable release.** The local CLI, optional MCP adapter and Python entry points are available for experimentation. A real synthetic Codex → DeepSeek Harness → fresh Codex recovery has been completed. This does not establish universal host compatibility, competitive superiority or token savings.
 

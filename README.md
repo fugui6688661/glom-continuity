@@ -10,7 +10,16 @@
 
 [English](README.en.md) · [MCP 接入](adapters/mcp.md) · [实测记录](docs/verification.md) · [安全与数据](SECURITY.md)
 
-源码正在准备正式版（内部版本 `0.1.0.dev4`），尚未发布这一版本的下载包。下方下载链接仍是不可变的 Alpha.5，不含开发版记忆、`resume`、`doctor` 或 `return-work`；试用新功能需要对应候选包或源码，不会把旧下载包直接改名为正式版。
+[如何积累可复用的项目方法](docs/field-lessons.md) · [分享一次试用](https://github.com/fugui6688661/glom-continuity/issues/new?template=field_trial.yml)
+
+## 先选对版本
+
+| 入口 | 当前可试的范围 |
+|---|---|
+| [Alpha.5 下载包](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) | 项目检查点、文件变化检查与交接；开发者预览，非稳定版 |
+| 当前 `main` 源码（`0.1.0.dev4`） | 另有项目习惯/流程记忆、`resume`、`doctor`、`return-work`；尚未发布对应下载包，实测边界见[记录](docs/verification.md) |
+
+第一次试用可从 Alpha.5 的合成演示开始。要试开发功能，按[源码安装路径](INSTALL.md)绑定明确版本；更新仓库说明不会更新你电脑里的旧包，也不会把预览版直接变成正式版。
 
 本轮新增[安装诊断与成果回存](docs/result-return.md)：查清当前调用的是哪份程序；接手方把产物保存到对应交接，原助手能读回文件、版本与变化情况。普通保存仍可用于单助手工作，不强制每个任务走交接。
 
