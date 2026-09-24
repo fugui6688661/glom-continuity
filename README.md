@@ -1,161 +1,72 @@
 # Recaloom · 续珞
 
-原名 glom-continuity。品牌已更新，仓库地址、安装包名、命令、MCP工具名和项目数据目录保持兼容；现有用户无需迁移或重新初始化项目。新名称不代表已发布正式版。
+给用 AI 助手持续做项目的人。把目标、限制、已定事项和下一步留在项目里，换会话后读回；引用文件变了，就先审阅变化。一个助手也能用。
 
-**换个助手，接着做。**
+本版本 v0.1.0-alpha.6 将现有 dev4 功能打包为新的预览版，不是稳定版。安装以对应 Release 的具名附件及配套清单为准；源码、安装包与实际调用的程序需分别核对版本。
 
-本地项目检查点与交接工具。记录目标、决定、限制和下一步；接手时，检查引用文件是否还是原来的版本。
+[安装与首次使用](INSTALL.md) · [English](README.en.md)
 
-“币种还没确认，原始记录不能删。”这些细节和下一步一起保存，供新会话读回。输入文件已经变化？先检查变化，再接受交接。
-
-[English](README.en.md) · [MCP 接入](adapters/mcp.md) · [实测记录](docs/verification.md) · [安全与数据](SECURITY.md)
-
-[如何积累可复用的项目方法](docs/field-lessons.md) · [分享一次试用](https://github.com/fugui6688661/glom-continuity/issues/new?template=field_trial.yml)
-
-## 先选对版本
-
-| 入口 | 当前可试的范围 |
-|---|---|
-| [Alpha.5 下载包](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) | 项目检查点、文件变化检查与交接；开发者预览，非稳定版 |
-| 当前 `main` 源码（`0.1.0.dev4`） | 另有项目习惯/流程记忆、`resume`、`doctor`、`return-work`；尚未发布对应下载包，实测边界见[记录](docs/verification.md) |
-
-第一次试用可从 Alpha.5 的合成演示开始。要试开发功能，按[源码安装路径](INSTALL.md)绑定明确版本；更新仓库说明不会更新你电脑里的旧包，也不会把预览版直接变成正式版。
-
-本轮新增[安装诊断与成果回存](docs/result-return.md)：查清当前调用的是哪份程序；接手方把产物保存到对应交接，原助手能读回文件、版本与变化情况。普通保存仍可用于单助手工作，不强制每个任务走交接。
-
-开发版支持[单助手习惯与流程恢复](docs/project-memory.md)：不需要第二位助手，仍用同一套项目检查点保存。dev3 的只读 `resume` 可一次读取恢复状态、检查、上下文、选中记忆及待领取交接；流程按字面关键词选择，停用、过期或未确认条目不推荐。它不自动保存、领取交接、扫描聊天或增加权限，也不是语义记忆或永不遗漏的保证。
-
-**0.1.0-alpha.5 · 开发者预览版，非稳定正式版。**本地 CLI、可选 MCP 和 Python 安装入口可供试验；已完成一次真实的 Codex → DeepSeek Harness → 新 Codex 合成项目恢复接力。它不等于所有助手都已兼容，也不证明比现有工具更省 token。
-
-[下载预览版](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5) · [安装说明](INSTALL.md) · [提交问题](https://github.com/fugui6688661/glom-continuity/issues)
-
-首次使用请下载该 release 的 ZIP 附件，而不是 GitHub 自动生成的 Source code。附件保持已验收候选的原字节；其中的发布状态文字是打包时快照，后续验证与限制以[发布说明](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.5)和[实测记录](docs/verification.md)为准。
-
-第一次使用请看[安装与试用](INSTALL.md)：从虚构案例开始，再接入自己的助手。基础工具不需要模型API；使用云端助手时仍遵循该助手的计费与隐私规则。
-
-## 先试一次，不用账号
-
-需要 Python 3.10+。解压便携包，在工具目录运行；CLI 不需要安装依赖，也不调用模型。以下演示只用脚本生成的合成数据。
+Mac / Linux，先在工具存放目录运行；`.recaloom-alpha6` 必须是新目录，不覆盖已有环境，也不安装到系统 Python：
 
 ```sh
-python3 -B scripts/continuity.py --version
-python3 -B scripts/smoke_demo.py --output ./continuity-demo
-python3 -B scripts/continuity.py --project ./continuity-demo context --max-chars 6000
+python3 -m venv .recaloom-alpha6
+.recaloom-alpha6/bin/python -m pip install --no-index --no-deps "https://github.com/fugui6688661/glom-continuity/releases/download/v0.1.0-alpha.6/glom_continuity-0.1.0a6-py3-none-any.whl"
+.recaloom-alpha6/bin/glom-continuity --version
 ```
 
-`continuity-demo` 必须是尚不存在的新目录；已存在时换一个名字，不会替你覆盖。
+需要 Python 3.10+，版本应显示 `0.1.0-alpha.6`。固定附件不可用时先核对对应 Release，不换成旧包完成新版教程。Windows 路径替换、本地 wheel 和卸载见 INSTALL。
 
-打开生成的 `continuity-demo/演示结果.md`：可以看到恢复的项目、文件改变时被拒绝的交接，以及重复领取的拒绝结果。`events.json` 保留本次事件，`handoff-review.json` 是审阅快照。**这是 CLI 协议回放，不是两个模型在工作。**真实 Codex 的单独试验见[实测记录](docs/verification.md)。
-
-Windows 命令可用 `py -3` 替代 `python3`；已在 GitHub Windows runner 跑过协议和安装检查，不代表所有 Windows 实机验证。不提供尚未上架的 `pip install glom-continuity` 命令。
-
-## 怎么接入你的助手
-
-| 你的助手具备什么 | 接入方式 | 已核验到哪一步 |
-|---|---|---|
-| 本地命令执行与项目访问 | 便携 CLI；可配通用 Skill | 协议检查；维护者记录了一轮指定版本 Codex→DSH→Codex 接力，见实测记录 |
-| 本地 MCP stdio | [可选适配器](adapters/mcp.md)，默认只读 | 协议用例与一个 Codex 0.153.4 真实会话；其他宿主待验 |
-| 只能读文件或聊天 | 提供经过审阅的 JSON 快照 | 人工交接，不做实时校验或自动回写 |
-| 远端 HTTP / 其他设备 | 后续认证与同步适配 | 尚未实现，不能将本机服务直接暴露出去 |
-
-不限定厂商。Codex、Harness 只是适配样例；客户端能发现工具、真正调用工具、按要求继续任务，分别验证。[通用合同](adapters/agent-neutral-contract.md) · [版本矩阵](adapters/support-matrix.md)
-
-## 直接告诉助手要保存或恢复什么
-
-把项目位置、工具位置和[通用 Skill](skills/project-continuity/SKILL.md)交给有权限的助手。例如：“保存这个项目的目标、限制、待确认问题和下一步。”下次说：“恢复这个项目，按‘视频’找适用流程，先告诉我资料是否变化、接下来能做什么。”安装本身不会给新聊天自动加载记忆；不需要全局钩子或导入聊天。
-
-使用 dev4 候选/当前源码（`resume` 从 dev3 开始提供），经 `--help` 确认命令存在后，在工具目录可运行：
+先跑一次合成演示，输出目录必须尚不存在：
 
 ```sh
-python3 -B scripts/continuity.py --project /absolute/path/to/project resume --query "视频" --max-chars 10000
+.recaloom-alpha6/bin/glom-continuity-demo --output ./recaloom-demo
 ```
 
-MCP 须先发现 `continuity_resume`，再调用 `continuity_resume(query="视频", max_chars=20000)`，不传项目参数。没有该命令/工具的旧包仍按 `status` 分流：有节点才 `check` → `context`；Alpha.5 不支持记忆或 `query`。便携包与 wheel 的绝对命令路径见[安装说明](INSTALL.md)。
+打开 `recaloom-demo/演示结果.md`。这是无模型调用的 CLI 协议回放，不是真实模型接力。
 
-恢复返回 `not_initialized`、`no_checkpoint`、`needs_review`、`no_references` 或 `restored`：分别表示尚未初始化、尚未保存、需审阅变化、仅可恢复无引用的规划、已恢复记录；不是完成认证。它不执行 `init`/保存/`accept`，待领取交接也不会自动领取；损坏的已有存储仍报错。预算默认 6000 字符，覆盖完整响应，MCP 还计入工具包装；示例预算不是最低值，不足时报错而非截断。开发功能说明不代表新增测试已通过。
+## 先用一个助手
 
-## 在自己的项目保存节点
+安装后，把项目绝对路径、匹配版本的 Skill 绝对路径和工具的可执行命令前缀交给有本地权限的助手：
 
-明确选择一个已有项目目录。工具本身可以放在项目外。
+> 保存这个项目的目标、限制、待确认问题和下一步。下次新会话先只读恢复，告诉我资料是否变化。
 
-```sh
-python3 -B scripts/continuity.py --project /absolute/path/to/project init --name "我的项目"
-```
+安装不会让所有新聊天自动加载项目。wheel 用户需要另外取得匹配的 Skill，不能假定环境里有 `skills/` 或 `scripts/`。照[首次使用卡](docs/first-use.md)保存一个虚构小项目，再开新会话读回来。
 
-在该项目内创建 `checkpoint.json`，再运行保存命令：
+alpha.6 包含 dev4 已有的功能：
 
-```json
-{
-  "objective": "整理报告，保留原始统计口径",
-  "next_action": "确认缺失记录的处理方法",
-  "constraints": ["未经确认，不删除原始记录"],
-  "decisions": ["按月份汇总"],
-  "unresolved": ["币种待确认"],
-  "evidence": []
-}
-```
+- `resume`：一次读回项目状态、引用检查、选中的习惯或流程，以及待领取交接。它只读，不自动初始化、保存或领取。
+- [项目记忆](docs/project-memory.md)：保存经你确认的习惯和流程，按字面关键词选择；不扫描聊天、不训练模型，也不保证记全。
+- `doctor`：查看实际调用的版本、程序位置和项目存储状态。诊断成功不等于数据兼容或发布者身份得到认证。
+- [成果回存](docs/result-return.md)：用 `return-work` 将接手产物关联到已领取交接；普通单助手保存不需要交接。
 
-```sh
-python3 -B scripts/continuity.py --project /absolute/path/to/project checkpoint --from-file /absolute/path/to/project/checkpoint.json --expect-revision 0
-python3 -B scripts/continuity.py --project /absolute/path/to/project context --max-chars 6000
-```
+## 需要第二个助手时
 
-这是无文件引用的规划例子，状态为 `no_references`，不代表验过成品。已有输入用 `[{"path":"input.csv","role":"input"}]`，输出用 `artifact`；文件必须真实存在，路径相对项目，指纹由工具计算。后续保存先读 `status.data.revision`，不能一直填 0。冲突时合并进展，不盲目重试。
+A 保存并创建交接，B 获准访问同一份本地项目后检查、领取并工作。适合单阶段回存的任务，B 可以用 `return-work` 登记真实产物；A 再读回执和文件。输入或基础版本已变化时要先解决冲突，不能强行关联旧交接。
 
-可以让助手读取[通用 Skill](skills/project-continuity/SKILL.md)。文件说明不会凭空赋予命令执行或文件权限。包内 Codex 插件元数据和项目模板也不代表已经安装；不自动覆盖全局配置或现有项目指令。
+由你把指令交给另一位助手，工具不会发消息或启动模型。领取回执不证明任务完成、模型身份或外部动作“只执行一次”。不能访问同一项目时，可人工传递经审阅的快照，但没有实时校验或自动回写。
 
-## 交接给另一个助手
+有本地命令权限可用 CLI；支持本地 stdio 的宿主可选 [MCP](adapters/mcp.md)，默认只读。Skill 和插件元数据本身不会授予权限，也不表示客户端已完成安装。[接入合同](adapters/agent-neutral-contract.md)与[版本矩阵](adapters/support-matrix.md)说明各自边界。
 
-第一个助手保存后，显式创建交接。`reviewer` 是你选的标签，不是认证身份：
+## 隐私、费用和停用
 
-```sh
-python3 -B scripts/continuity.py --project /absolute/path/to/project handoff --recipient reviewer --expect-revision 1
-```
+基础 CLI 无运行时第三方依赖，不调用模型、不上传项目内容，也不需要模型账号。安装时下载 wheel 会联网；MCP 的 SDK 是另装的可选依赖。连接云端助手后，助手可能把读到的上下文发送给其模型服务，并按自身规则计费。
 
-接收方获准访问同一个项目后，用返回的 ID 领取并恢复：
+状态在所选项目的 `.continuity/state.sqlite3`，原文件留在原处。草稿、数据库和导出包可能含私人内容，不要直接公开。备份须先停写，再一起保留 `.continuity/` 和引用文件；不要并发同步正在写入的 SQLite。
 
-```sh
-python3 -B scripts/continuity.py --project /absolute/path/to/project accept --id HANDOFF_ID --recipient reviewer
-python3 -B scripts/continuity.py --project /absolute/path/to/project context --max-chars 6000
-python3 -B scripts/continuity.py --project /absolute/path/to/project receipt --id HANDOFF_ID
-```
+停用时移除自己添加的 Skill／客户端连接，关闭对应 MCP 子进程；wheel 可从专用虚拟环境卸载，便携工具可移走。项目记忆可以保留。本工具不安装自启动守护进程。[安装说明](INSTALL.md)有卸载、备份与故障处理步骤；[安全说明](SECURITY.md)列出信任边界。
 
-它不会自动发消息或启动助手。回执只记录领取，不证明模型身份或任务完成。来源变化、交接过期、修订陈旧、重复领取均会拒绝；通过后仍须按当前权限核查并执行下一步。
+## 旧用户与实测限制
 
-## 数据留在哪里，怎么停用
+Recaloom 原名 glom-continuity。仓库、包名、命令、MCP 工具名和项目目录保持兼容；已有项目不要再次 `init`。旧 alpha.5 仍可按原有功能使用，但不会因文档更新而获得项目记忆、`resume`、`doctor` 或 `return-work`。升级步骤见 INSTALL。
 
-- 状态在所选项目 `.continuity/state.sqlite3`；原始材料留在原处。**手写草稿、数据库和导出包不要直接提交到公开仓库。**
-- 工具本身不调用模型、不上传内容。但你连接的云端助手可能把收到的上下文发给其模型服务；“本地存储”不等于整条链路不出机。
-- `export --output review.json` 在项目根新建审阅包，不覆盖。它包含文字和相对文件名，仍可能敏感；不是原始文件备份或数据库导入。
-- 备份先停止所有写入者，再复制整个 `.continuity/` 和被引用文件，保留相对路径。恢复到新位置后运行 `status`、`check`。不要并发同步正在写入的 SQLite。
-- 停用时移除自己添加的 Skill/客户端配置，关闭对应 MCP 子进程，在新会话确认不再加载；按安装记录移走工具文件即可。**不需要删除项目记忆。**本工具不安装自启动守护进程。
+[实测记录](docs/verification.md)保留指定版本的 Codex → DeepSeek Harness → 新 Codex 合成接力、协议测试和跨系统 CI，也保留失败与未验项。这些记录不自动成为 alpha.6 包的验收结果。历史接力中曾保留过时的 `next_action` 文字；恢复记录后仍要核对当前任务和回执。
 
-## 失败时怎么办
+外部真人首次使用、完整公平效果对照、普通 Windows／Linux 实机体验和其他 MCP 宿主仍有未验项。没有 token 节省、返工减少或优于竞品的测量结论。脚本演示是协议回放，不是两个模型在工作；未装可选 SDK 时跳过 MCP 测试，也不算 MCP 通过。
 
-| 提示 | 下一步 |
-|---|---|
-| `BUDGET_TOO_SMALL` | 增加字符预算，不裁掉关键限制；字符不是 token |
-| `REVISION_CONFLICT` / `STALE_HANDOFF` | 读最新节点、合并进展，再交接 |
-| `needs_review` / `EVIDENCE_CHANGED` | 核对文件变化，审阅后保存新节点 |
-| `ALREADY_ACCEPTED` | 查询 `receipt`，不要重复外部动作 |
-| `NOT_INITIALIZED` / `NO_CHECKPOINT` | 获准后初始化 / 保存首个节点 |
-| `UNSAFE_PATH` / `SENSITIVE_CONTENT` | 修正引用或清除敏感内容，不绕过检查 |
-| `IO_ERROR` | 保留数据、检查磁盘状态，不删库伪装恢复 |
+文件指纹一致不等于内容正确。工具没有语义搜索、自动调度、身份认证、加密存储、远端 HTTP 接入或跨设备自动同步，也不是抵抗同一系统用户下恶意程序的沙箱。恢复和产物登记都不能代替业务验收。
 
-完整错误、预算、到期与接口规则见[接入说明](adapters/README.md)。CLI 预算统计成功 stdout；MCP 统计完整工具结果，两者不能当作相同的 token 预算。
-
-## 验证与当前限制
-
-```sh
-python3 -B -m unittest discover -s tests -v
-```
-
-未安装可选 MCP SDK 时，MCP 测试会明确跳过；不能把该次运行说成 MCP 通过。[MCP 安装及测试](adapters/mcp.md) · [完整证据与未验项](docs/verification.md)
-
-文件指纹一致不等于内容正确。这里没有自动调度、语义记忆推理、身份认证、加密存储、远端同步或外部动作“只执行一次”的保证。相同系统用户有磁盘访问权；这是协作工具，不是抵抗恶意同机程序的沙箱。
-
-已完成的真实接力和跨系统 CI 范围见[实测记录](docs/verification.md)。外部真人试用、完整公平效果对照和普通跨系统实机体验仍待验证。未测量 token 节省或返工减少，不宣称优于竞品。许可与预览版发行边界见[来源与许可](PROVENANCE.md)；开发顺序见[实施表](IMPLEMENTATION.md)。
+[可复用项目方法](docs/field-lessons.md) · [脱敏试用反馈](https://github.com/fugui6688661/glom-continuity/issues/new?template=field_trial.yml) · [来源与预览范围](PROVENANCE.md) · [实施记录](IMPLEMENTATION.md)
 
 ## 许可
 
-[MIT License](LICENSE)。适用于本工具；第三方依赖保留各自许可。
+[MIT License](LICENSE)。第三方依赖保留各自许可。

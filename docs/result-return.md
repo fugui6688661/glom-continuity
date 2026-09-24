@@ -1,24 +1,24 @@
 # Recaloom：安装诊断与成果回存
 
-适用于 `0.1.0.dev4` 源码/对应候选；不是已发布的 Alpha.5 功能，也不是正式版公告。旧版本继续按其帮助与工具列表操作。品牌变为 Recaloom · 续珞，仓库、Python包、CLI/MCP名称和 `.continuity/` 保持不变。
+本页适用于 alpha.6 预览版，包含 dev4 已有的安装诊断与成果回存。安装以对应 Release 的具名附件及配套清单为准；这份说明不新增测试或稳定性结论。Recaloom · 续珞的仓库、Python 包、CLI/MCP 名称和 `.continuity/` 保持兼容。
 
-## 两件实际的事
+## 何时使用
 
-一是知道自己调用了哪份工具。二是让接手方把产物明确存回这次交接。原助手不只看到“我接了”，还可以找到“我存了哪份文件、哪个版本，以及文件后来有没有变”。
+`doctor` 用来确认实际调用的程序和项目存储。`return-work` 让接手方把产物存回已领取的交接，原助手可以查到文件、修订号及后续变化。普通单助手工作仍可直接保存 checkpoint。
 
 本工具不负责生成文件或判断报告是否正确。产物回存也不等于发消息：仍需在原助手中恢复同一份项目，或把交接编号给它。
 
 ## 先认清安装
 
-从已提供的工具目录运行：
+先按 [INSTALL](../INSTALL.md) 选定完整的绝对命令前缀。下文 `<cli>` 必须替换后使用：wheel 可用 `/absolute/tool-env/bin/glom-continuity`；便携版可用 `python3 -B /absolute/tool/scripts/continuity.py`。先核对版本和帮助，确认 doctor 可用再诊断：
 
-```sh
-python3 -B scripts/continuity.py --version
-python3 -B scripts/continuity.py --help
-python3 -B scripts/continuity.py --project /absolute/project doctor
+```text
+<cli> --version
+<cli> --help
+<cli> --project /absolute/project doctor
 ```
 
-Windows 可用 `py -3`；wheel 使用环境内 `glom-continuity` 的绝对命令前缀。MCP 先发现 `continuity_doctor`，再调用，不传项目参数。
+Windows 便携版用 `py -3 -B` 加绝对脚本路径；wheel 用环境内 `Scripts/glom-continuity.exe` 的绝对路径。Skill 也须指定匹配版本的实际绝对路径，wheel 不要求旁边有源码/skills 目录。MCP 先发现 `continuity_doctor`，再调用，不传项目参数。
 
 诊断返回 `product_id`、`display_name`、`version`、`source_url`、程序路径/哈希及选定项目的存储状态。MCP另有 `write_tools_enabled`。它不扫描整机安装，不查密钥，不改数据库，也不替你修复。
 
@@ -29,7 +29,7 @@ Windows 可用 `py -3`；wheel 使用环境内 `glom-continuity` 的绝对命令
 
 兼容注意：已有 `.continuity/` 但缺少数据库，从旧版的 `NOT_INITIALIZED` 改报 `UNRECOGNIZED_STORAGE`。这是刻意收紧，避免自动化把数据丢失误当首次安装；目录完全不存在才返回 `NOT_INITIALIZED`。旧错误处理若遇到新码，应停止并保留文件，不可自动重建。
 
-这是程序自报与格式识别，**不是防伪签名**。攻击者可以伪造显示名；哈希要与可信来源的清单对照。程序路径可能包含本机用户名，向公开问题区粘贴前先遮去。
+这是程序自报与格式识别，不是防伪签名。攻击者可以伪造显示名；哈希要与可信来源的清单对照。程序路径可能包含本机用户名，向公开问题区粘贴前先遮去。
 
 ## 保存、接手、产出、回存
 
@@ -41,10 +41,10 @@ Windows 可用 `py -3`；wheel 使用环境内 `glom-continuity` 的绝对命令
 
 假设领取基础版本是 1；`result.json` 已在项目内写好，引用的产物文件真实存在：
 
-```sh
-python3 -B scripts/continuity.py --project /absolute/project return-work --id HANDOFF_ID --recipient reviewer --from-file /absolute/project/result.json --expect-revision 1
-python3 -B scripts/continuity.py --project /absolute/project receipt --id HANDOFF_ID
-python3 -B scripts/continuity.py --project /absolute/project resume --max-chars 12000
+```text
+<cli> --project /absolute/project return-work --id HANDOFF_ID --recipient reviewer --from-file /absolute/project/result.json --expect-revision 1
+<cli> --project /absolute/project receipt --id HANDOFF_ID
+<cli> --project /absolute/project resume --max-chars 12000
 ```
 
 MCP 对应 `continuity_return_work(id, recipient, from_file, expect_revision)`，仅启用 `--allow-writes` 时出现；相对 `from_file` 从绑定项目根解析。只读宿主不能绕过配置写入。
@@ -74,11 +74,13 @@ MCP 对应 `continuity_return_work(id, recipient, from_file, expect_revision)`�
 
 旧三张表及六字段草案不改；第一次成功 `return-work` 才添加可选 `handoff_results` 关联表，与新检查点一起提交。旧读者仍可读取原检查点，但不会展示新关联。没有第二套数据库，没有全局记忆迁移，不因改名清空数据。
 
-备份在所有写进程停止后一起复制选定项目的 `.continuity/` **和被引用的文件**。数据库只保存文本与文件指纹，不备份产物原文；导出的审阅 JSON 不是恢复整个数据库的备份。不应把正在写入的数据库放进网盘同步来充当并发服务。
+已有项目不要再次 init。旧 alpha.5 仍兼容原检查点和交接，但不提供 doctor、return-work、resume 或项目记忆；文档更新不会增加旧包功能。旧读者只按其帮助与发现的工具工作，不要求它返回新版字段。
+
+备份在所有写进程停止后一起复制选定项目的 `.continuity/` 和被引用的文件。数据库只保存文本与文件指纹，不备份产物原文；导出的审阅 JSON 不是恢复整个数据库的备份。不应把正在写入的数据库放进网盘同步来充当并发服务。
 
 ## English quick reference
 
-Dev4 adds optional `doctor` / `continuity_doctor` and `return-work` / `continuity_return_work`. Discover them first; public Alpha.5 lacks these tools. Compatibility identifiers remain glom-continuity.
+The alpha.6 preview includes dev4's `doctor` / `continuity_doctor` and `return-work` / `continuity_return_work`. Use the matching Release's named assets and discover capabilities before calling them. Bind the actual executable prefix and matching Skill's absolute path separately; a wheel need not include a sibling source/skills tree. Compatibility identifiers remain glom-continuity. Existing projects need no new init; older Alpha.5 keeps its original functionality without these additions.
 
 Doctor reports the invoked script/version/hash and selected project's recognized storage shape; it does not authenticate a publisher or prove artifacts healthy. A successful diagnosis may report incompatible storage. Preserve unknown or corrupt storage; never reinitialize it as a repair.
 

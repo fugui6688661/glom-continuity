@@ -1,6 +1,14 @@
 # Continuity 独立工具实施表
 
-本文保留2026-09-12的实施快照，不是当前发布状态。最新源码、已发布预览和剩余条件见[实测记录](docs/verification.md)与[来源及发布条件](PROVENANCE.md)，不要从旧“尚未公开”重新开始发布流程。
+## Alpha.6 范围（2026-09-24）
+
+本版本把 dev1–dev4 的项目恢复、显式流程记忆、安装诊断和成果回存纳入同一发行。CLI 共 12 个命令：`init/status/check/checkpoint/context/resume/doctor/handoff/accept/receipt/return-work/export`。MCP 默认 6 个只读工具，显式 `--allow-writes` 后增加 6 个写工具；两条入口使用同一项目存储。安装见 [INSTALL](INSTALL.md)，5 分钟流程见[第一次使用](docs/first-use.md)。
+
+这是开发者预览，不是稳定版或全宿主认证。实际发行以 [Releases](https://github.com/fugui6688661/glom-continuity/releases) 的具名附件为准；测试、宿主实接与剩余条件分别见[实测记录](docs/verification.md)与[来源及发布条件](PROVENANCE.md)。
+
+## 历史实施快照（2026-09-12）
+
+以下九命令、4 读 + 5 写及“尚未公开”均是当时记录，不是 Alpha.6 的能力或发布状态。保留它们用于追溯，不据此重新开始首次发布流程。
 
 2026-09-12更新。这是独立的项目记录与交接工具，不是完整Agent平台。先实验、完善，再发布；本地候选、平台测试与公开版本分别记录。
 

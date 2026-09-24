@@ -2,7 +2,7 @@
 
 Recaloom 保存项目记录，不训练模型，也不会自动学会每次对话里的做法。这份说明面向希望持续改进自己工作流程的人，以及贡献通用修复的维护者。
 
-下面的记忆流程适用于 **dev4 源码/对应候选**；公开下载的 **Alpha.5 不支持 memory 或 resume**。先按[安装说明](../INSTALL.md)确认实际工具版本，不覆盖旧项目。
+下面的记忆流程适用于 **Alpha.6**（此前在 dev2–dev4 开发源码中实现）；旧 **Alpha.5 不支持 memory 或 resume**。先按[安装说明](../INSTALL.md)确认实际工具版本，不覆盖旧项目。
 
 ## 在一个项目里留下有用的经验
 
@@ -42,6 +42,6 @@ Recaloom 保存项目记录，不训练模型，也不会自动学会每次对�
 
 ## English summary
 
-Project workflows are reviewed notes, not automatic learning. On dev4 source/candidates, keep an inferred workflow `candidate`; reproduce its failure and a counterexample with permitted data, then obtain the user's project-specific confirmation before marking it `active`. Register verification notes separately if their changes should block recall. Save against the current revision and read back through a fresh process. Retire outdated methods. Neither `active`, a source string nor a matching hash certifies semantic correctness.
+Project workflows are reviewed notes, not automatic learning. In Alpha.6, keep an inferred workflow `candidate`; reproduce its failure and a counterexample with permitted data, then obtain the user's project-specific confirmation before marking it `active`. Register verification notes separately if their changes should block recall. Save against the current revision and read back through a fresh process. Retire outdated methods. Neither `active`, a source string nor a matching hash certifies semantic correctness.
 
-Contribute minimal synthetic reproductions rather than private project exports. Use the field-trial form for successes and failures, with exact tool/host versions and measured or explicitly unknown outcomes. Source updates do not upgrade installed packages; the public Alpha.5 has no memory/resume support. No automatic uploads or telemetry are introduced by this guide.
+Contribute minimal synthetic reproductions rather than private project exports. Use the field-trial form for successes and failures, with exact tool/host versions and measured or explicitly unknown outcomes. Source updates do not upgrade installed packages; older Alpha.5 packages have no memory/resume support. No automatic uploads or telemetry are introduced by this guide.

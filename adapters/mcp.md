@@ -50,6 +50,8 @@ tool_timeout_sec = 15
 
 ## 工具和边界
 
+Alpha.6 包含下表全部工具：默认 6 个只读工具，显式启用后增加 6 个写工具。括号中的 dev2/dev3/dev4 仅记录引入阶段，不要求用户安装不同开发版。插件 manifest 只声明 Skill；MCP 仍需按本页配置，不能将安装 Skill 说成自动接通 MCP。
+
 | 默认只读 | 显式加`--allow-writes`后增加 |
 |---|---|
 | `continuity_status` | `continuity_init` |

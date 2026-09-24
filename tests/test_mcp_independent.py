@@ -207,6 +207,31 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertFalse((self.project / ".continuity").exists())
         self.assertEqual(self.input.read_bytes(), self.original)
 
+    async def test_discovery_exposes_all_four_safety_hints_on_the_wire(self):
+        """Check what hosts receive, not decorator spelling or SDK attributes."""
+        for writable in (False, True):
+            with self.subTest(writable=writable):
+                async with self.wire(writable=writable) as peer:
+                    reply, _ = await peer.request("tools/list")
+                    self.assertNotIn("error", reply)
+                    listed = reply["result"]["tools"]
+                    expected_names = READ_TOOLS | WRITE_TOOLS if writable else READ_TOOLS
+                    self.assertEqual({tool["name"] for tool in listed}, expected_names)
+                    self.assertEqual(len(listed), len(expected_names))
+                    for tool in listed:
+                        expected = ({"readOnlyHint": True, "destructiveHint": False,
+                                     "idempotentHint": True, "openWorldHint": False}
+                                    if tool["name"] in READ_TOOLS else
+                                    {"readOnlyHint": False, "destructiveHint": False,
+                                     "idempotentHint": False, "openWorldHint": False})
+                        for key, value in expected.items():
+                            self.assertIn(key, tool["annotations"], tool)
+                            self.assertIs(tool["annotations"][key], value, tool)
+                    observation("wire-tool-annotations", writable=writable,
+                                annotations={tool["name"]: tool["annotations"] for tool in listed})
+                self.assertFalse((self.project / ".continuity").exists())
+                self.assertEqual(self.input.read_bytes(), self.original)
+
     async def test_02_mcp_save_cli_receive_continue_and_fresh_mcp_restore(self):
         draft = self.draft()
         async with self.client(writable=True) as sender:

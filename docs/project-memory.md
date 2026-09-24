@@ -1,24 +1,24 @@
 # 一个助手，也能接着做
 
-**适用于 0.1.0.dev4 候选/源码；源码已更新，对应的新版本下载包尚未发布，不是稳定版。记忆始于 dev2，一调用恢复始于 dev3；公开 Alpha.5 两者均不包含。**
+本页适用于 alpha.6 预览版，安装以对应 Release 的具名附件及配套清单为准。它包含 dev4 已有的项目记忆与恢复能力；记忆始于 dev2，一调用恢复始于 dev3。这段版本说明不新增实测结论，历史结果见[验证记录](verification.md)。
 
 你不一定需要第二个助手。这个功能把一个项目里已经确认的习惯、做法和进度保存下来，下次由有权限的助手读取。它不扩大模型上下文窗口，也不训练模型。
 
-已有笔记库可以继续使用。Recaloom 另存可恢复的任务节点，核对登记文件的版本，并记录助手交接；它不扫描笔记库，也不自动与笔记软件同步。保存哪些习惯和流程由你决定，不训练模型，也不保证记全。
+已有笔记库可以继续使用。Recaloom 另存可恢复的任务节点，核对登记文件的版本，并记录助手交接；它不扫描笔记库，也不自动与笔记软件同步。保存哪些习惯和流程由你决定，也不保证记全。
 
 ## 三类记录分开
 
-- **习惯**：例如解释用中文、报告先给结论。可设置始终适用，或只适用于某类任务。
-- **流程**：例如制作视频时，先确认素材用途，再检查画面、字幕和声音。按当前任务关键词取用，不让所有流程挤进每次对话。
-- **项目进度**：目标、限制、已定事项、待确认问题和下一步，仍保存在原来的 checkpoint 中。
+- 习惯：例如解释用中文、报告先给结论。可设置始终适用，或只适用于某类任务。
+- 流程：例如制作视频时，先确认素材用途，再检查画面、字幕和声音。按当前任务关键词取用。
+- 项目进度：目标、限制、已定事项、待确认问题和下一步，仍保存在 checkpoint 中。
 
 安装工具本身不会自动开启每个新聊天的记忆。助手需要能读取项目并调用 CLI/MCP；宿主是否自动加载 Skill 必须单独验证。只有当前助手被要求保存的内容才进入记录，不扫描历史聊天、公司资料或其他项目。
 
-已有 dev4 候选/源码时，可在工具目录运行 `python3 -B scripts/memory_demo.py --output ./memory-demo` 查看记忆保存/召回演示。输出目录必须尚不存在，父目录必须存在。打开生成的 `演示结果.md`；原始命令响应在 `events.json`。这是脚本回放，不是新增 `resume` 已验收、模型效果或节省时间的证明。
+另有匹配的便携包/源码时，可在其工具目录运行 `python3 -B scripts/memory_demo.py --output ./memory-demo` 查看记忆保存/召回演示；不要假定 wheel 环境有这个脚本。输出目录必须尚不存在，父目录必须存在。打开生成的 `演示结果.md`；原始命令响应在 `events.json`。这是脚本回放，不证明所有恢复功能通过验收、模型效果或节省时间。
 
 ## 让助手第一次保存
 
-把下面这段话连同项目位置、工具位置和 [Skill](../skills/project-continuity/SKILL.md) 交给有本地工具权限的助手。按 [INSTALL 的候选/源码路径](../INSTALL.md) 绑定已提供的 dev4 工具；其中公开 Alpha.5 下载不能用于此教程。未拿到候选或源码时先停在这里，不猜下载链接，不覆盖旧项目。
+按 [INSTALL](../INSTALL.md) 确认版本与帮助。把下面这段话连同项目绝对路径、匹配 [Skill](../skills/project-continuity/SKILL.md) 的实际绝对路径和完整可执行命令前缀交给有本地权限的助手。wheel 的 Skill 可在另一份匹配文档目录内，执行仍使用所选环境的程序。已有项目不要再次 init；陌生或损坏存储须先检查，不重建。
 
 > 保存这个项目的进度，以及我明确确认的习惯和流程。猜测先列为 candidate，不导入其他项目或私人聊天；保存后告诉我记住了什么。
 
@@ -76,7 +76,7 @@ MCP：确认发现 `continuity_resume` 后调用 `continuity_resume(query="视�
 
 `max_chars` 默认 6000，覆盖完整响应；MCP 包括工具包装及文本/结构化表示。上面的预算只是示例，不是最低要求。不足返回 `BUDGET_TOO_SMALL`，不截断，也不能自行丢掉约束。
 
-未提供 `resume` 的旧包仍先 `status`：未初始化/无节点时按首次保存或仅报告分流，有节点才 `check` → `context`。MCP 同样先 `continuity_status`、有节点再 `continuity_check` / `continuity_context`。仅当版本/帮助确认支持记忆查询时给 `context` 传 `query`；Alpha.5 不支持记忆或查询，不能把 `memory` 偷换成普通输入。
+旧版迁移：未提供 `resume` 的包仍先 `status`，未初始化/无节点时按获准首次保存或仅报告分流，有节点才 `check` → `context`。MCP 同样先 `continuity_status`、有节点再 `continuity_check` / `continuity_context`。仅当版本/帮助确认支持记忆查询时给 `context` 传 `query`；alpha.5 不支持记忆或查询，不能把 `memory` 偷换成普通输入。它仍兼容原有记录，但不会自动获得新功能。
 
 有 memory 登记时，`data.memory.selected` 是选中的完整条目，`data.memory.omitted` 列出未选条目的 ID 和原因，`data.text` 也包含同样信息。有 checkpoint 的 `resume` 沿用 context 的同级字段 `data.text`、`data.memory`（存在时）及 `data.check`，另加 `data.recovery_state`、`data.name` 和 `data.pending_handoffs`，不会多嵌套一层 context。空状态没有 `data.memory` 键；未登记 memory 的旧 context 也不附加空的 `memory` 字段。
 
@@ -93,7 +93,7 @@ MCP：确认发现 `continuity_resume` 后调用 `continuity_resume(query="视�
 
 每个 checkpoint 最多登记 4 份 memory 文档；每份最多 128 KiB、32 条记录。条目字段与示例必须一致。ID 为小写英文字母/数字及 `._-`，最长80；title160、body4000、source512字符。`when` 为1–16个非空关键词，每个最多80字符；只有通用 preference 可用单独的 `["*"]`，workflow 必须明确关键词。状态仅 active/candidate/retired；kind仅 preference/workflow；expires_at为带时区时间或null。
 
-检索是**忽略大小写的字面关键词包含匹配**，不是语义搜索。没带 query 时仅选择通用习惯；所有没选中的条目会给原因。重要项目限制始终放在 checkpoint 的 constraints，不能仅靠关键词触发。任何登记引用变动都先复核。检查和召回不创建权限、不自动执行流程、不保证语义正确。
+检索是忽略大小写的字面关键词包含匹配，不是语义搜索。没带 query 时仅选择通用习惯；所有没选中的条目会给原因。重要项目限制始终放在 checkpoint 的 constraints，不能仅靠关键词触发。任何登记引用变动都先复核。检查和召回不创建权限、不自动执行流程、不保证语义正确。
 
 文字必须是有效 Unicode 标量；JSON 中转义的孤立代理项会在保存前被拒绝，并指出字段，不覆盖原 checkpoint。普通中文和有效补充平面字符可正常使用。
 

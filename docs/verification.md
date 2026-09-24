@@ -2,6 +2,22 @@
 
 This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
 
+## Alpha.6 release scope and upgrade check — 2026-09-24
+
+Alpha.6 packages the previously source-only dev1–dev4 features. CLI SHA-256: `e0cf907af025c50ff257de2c9b9b8eafcddd776dcd9487484bec7bf61c3bf0c1`; MCP SHA-256: `bce11f7d8b5b5c282b7641029b70961243cb6aed39c78788bb6f36e6793f7354`. The CLI change from dev4 is the version constant, not a new execution engine. Docs now distinguish one-assistant recovery, optional handoff, installed commands, portable Skill files and historical host evidence.
+
+An independent AI-authored CLI lifecycle used the original Alpha.5 implementation at `c3b9e4f75b530b9e061415672c503fbdf0a53253` to initialize, save and offer a synthetic project. Alpha.6 recovered it read-only without changing storage bytes, accepted the offer, and linked a generated artifact with `return-work`. Fresh processes read the saved result. Inputs and drafts stayed unchanged, the project was not reinitialized, and the old CLI could still read the ordinary checkpoint. Its old receipt did not expose the new result field; older writes/downgrades were not tested.
+
+All 26 initial CLI calls exited successfully, but the review script's final whole-object comparison failed because `result.check.checked_at` changes on each check. The original failed run was retained. A separate read-only follow-up checked that specific timestamp and all other receipt fields, issued six new successful CLI reads, and confirmed unchanged storage/input bytes. This is one bounded synthetic lifecycle, not 37 independent upgrade scenarios, model behavior or external human first use.
+
+Release artifacts, hashes and matching hosted CI are recorded on the [Alpha.6 release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.6). Publishing a new package does not upgrade an existing installation, prove every host compatible, or close the outstanding matched-model and human-first-use checks. The sections below retain their original dates; their statements about then-current public downloads are historical.
+
+## Tool discovery and first-use route: 2026-09-24 (pre-release development check)
+
+On macOS 26.6.2 arm64, Python 3.12.14 and MCP SDK 2.2.0, the independent stdio/CLI suite passed 23 tests, no skips. Its new raw JSON-RPC `tools/list` check verifies all four annotation fields on every advertised tool: six read-only tools by default, twelve only with explicit `--allow-writes`. Discovery left the synthetic project uninitialized and its input unchanged. The runtime bytes remain those recorded for dev4 below; this adds regression coverage, not a new runtime behavior or security certification.
+
+The pinned source acquisition commands in [INSTALL](../INSTALL.md) were run from a new temporary directory. A public clone checked out `0a516e693f918e8406794f583469afa2aeaf28cd`; version returned `0.1.0.dev4`, and help included resume, doctor and return-work. A nine-call smoke demo in a path containing spaces returned `protocol_demo_passed` and `real_model_handoff_verified:false`. This checks the source route and synthetic protocol, not fresh-user comprehension or every operating system. Public release assets and installed user copies were not updated.
+
 ## Runtime diagnosis and result return — 2026-09-15 (development dev4)
 
 The display brand becomes **Recaloom · 续珞**; compatibility identifiers, existing release assets and project storage remain unchanged. Dev4 adds `doctor` and `return-work` to CLI/MCP. It is development source, not a stable release or automatic installed upgrade.
