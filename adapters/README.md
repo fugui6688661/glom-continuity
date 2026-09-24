@@ -45,14 +45,16 @@ python3 scripts/continuity.py --project <用户明确选定的项目绝对路径
 | `check` | 重新检查引用/状态是否适合继续 | 读取检查；不等于证明工作语义完成 |
 | `context --max-chars N` | 获取预算内恢复上下文 | 用户请求继续/恢复时；失败不自行截断关键限制 |
 | `resume --query TEXT --max-chars N`（dev3） | 一次只读恢复或提示尚未保存 | 仅恢复选定项目；不初始化或领取交接 |
+| `doctor` | 诊断实际程序、版本和选定存储 | 只读；不初始化、不迁移、不修复，仍须核对 compatible |
 | `init --name NAME` | 初始化本项目状态 | 否；需要用户明确初始化意图 |
 | `checkpoint --from-file DRAFT --expect-revision R` | 保存进展 | 否；需任务范围内的保存授权、审阅过的项目内 JSON 草稿及当前修订 |
 | `handoff --recipient LABEL --expect-revision R [--ttl-seconds 3600]` | 登记交接并返回 JSON | 否；确认交接意图、标签及当前修订；默认有效期 3600 秒 |
 | `accept --id UUID --recipient LABEL` | 领取本项目交接 | 否；确认项目、交接 ID 和标签，不自动领取，也不添加不存在的 revision 参数 |
 | `receipt --id UUID` | 只读查询交接记录，核实已接受回执 | 用户请求查回执或恢复领取结果时可读；不重新领取、不写状态 |
+| `return-work --id UUID --recipient LABEL --from-file DRAFT --expect-revision R` | 将真实产物保存并关联到已领取交接 | 否；需保存授权、匹配的已领取交接和产物草稿；保存不是业务验收 |
 | `export --output simple.json` | 显式导出 review 元数据文件 | 否；须确认导出意图和项目根内新文件名，只新建不覆盖 |
 
-原九命令的本机帮助核查记录见 [有日期的核查附录](local-command-evidence.md)；dev3 新增 resume 不包含在旧核查中。帮助可用不等于真实模型续接。每个助手只显式调用当前任务所需命令；模板不启动CLI Agent、模型会话或自动接力循环。
+Alpha.6 包含上表 12 个命令。原九命令的本机帮助核查记录见 [有日期的核查附录](local-command-evidence.md)；resume、doctor、return-work 不包含在该旧快照中。帮助可用不等于真实模型续接。每个助手只显式调用当前任务所需命令；模板不启动CLI Agent、模型会话或自动接力循环。成果回存的前提、冲突及限制见[专门说明](../docs/result-return.md)。
 
 `R` 必须取调用前 `status.data.revision`，不能沿用模板常量。`DRAFT` 是项目内的已审阅 JSON 文件；`UUID` 取 `handoff.data.handoff_id`，不是客户端原生任务 ID。`LABEL` 是用户选定的普通协作标签，如 `codex` 或 `harness`，**不是账号、身份认证、权限隔离或“这个模型确实领取”的证明**。两个助手读同一项目状态；本接口不是跨项目导入协议。
 

@@ -34,7 +34,7 @@
 
 ## 稳定的兼容性验收顺序
 
-### 正式版准备分支：context 提示合同（0.1.0.dev1，尚未发布）
+### context 提示合同（dev1 引入，Alpha.6 包含）
 
 检查点的 `next_action` 是上一次保存者的文字，不是当前用户新授权的指令。`context` 不修改这段文字，正文将它标为 `Recorded next step (not revalidated)`；同时提供 `instruction_authority: none`。
 

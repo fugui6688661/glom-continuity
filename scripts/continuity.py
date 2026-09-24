@@ -15,7 +15,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0.dev4'
+VERSION = '0.1.0-alpha.6'
 PRODUCT_ID = 'glom-continuity'
 DISPLAY_NAME = 'Recaloom'
 SOURCE_URL = 'https://github.com/fugui6688661/glom-continuity'

@@ -1,10 +1,14 @@
 # 接入与版本支持矩阵
 
-2026-09-15开发提交的协议/安装验证，以及未完成的同模型试点见[实测记录](../docs/verification.md)。下面的成功跨厂商接力仍只属于Alpha.5，不能扩展为新Skill、DSH MCP或其他宿主已通过。
+## Alpha.6：工具能力与宿主实接分开
 
-## 当前已报告范围（2026-09-14）
+Alpha.6 提供 12 个 CLI 命令；本地 MCP 默认 6 个只读工具，启用写操作后共 12 个。安装见 [INSTALL](../INSTALL.md)，具体工具见 [MCP 接入](mcp.md)。没有远端 HTTP 服务、跨电脑实时同步或一键替所有宿主配置 MCP。
 
-以下对应不可变 Alpha.5，不是尚未发布的 `0.1.0.dev1` 新模型实测。维护者已记录 macOS 上 Codex 0.154.0-alpha.6.2 → DSH 0.1.5-rc.1 → 新 Codex 的合成订单接力；经历过启动/传输失败后完成恢复，原失败保留。模型标记为 gpt-6-astra low 和 `deepseek-flash` low（提供方别名不证明隐藏的模型修订）。
+本版本的协议、发行包、安装和升级验证见[实测记录](../docs/verification.md)。这些测试不替代真实宿主运行。下面的成功跨厂商接力仍只属于 Alpha.5，不能扩展为 Alpha.6 新 Skill、DSH MCP 或其他宿主已通过。2026-09-15 的同模型试点仍未得出效果对照结论。
+
+## 历史真实模型实测（2026-09-14，Alpha.5）
+
+以下对应不可变 Alpha.5，不是 Alpha.6 的新模型实测。维护者已记录 macOS 上 Codex 0.154.0-alpha.6.2 → DSH 0.1.5-rc.1 → 新 Codex 的合成订单接力；经历过启动/传输失败后完成恢复，原失败保留。模型标记为 gpt-6-astra low 和 `deepseek-flash` low（提供方别名不证明隐藏的模型修订）。
 
 本地命令接力与 MCP 是不同接入路线：上述结果不证明 DSH 的 MCP 配置或自动发现已通过；Codex 0.153.4 的只读 MCP 实测仍是另一项有日期的证据。其他宿主、其他版本、跨电脑同步均不能据此标成兼容。
 
@@ -47,6 +51,6 @@ Codex CLI **0.153.4**：在 macOS 26.4.1 arm64、Python 3.12.14、MCP SDK 2.2.0 
 
 命令输出和路径详见 [本机核查记录](local-command-evidence.md)。所有已实核项都止于本机入口、静态文件与 CLI 只读探测；两个模型续接能力仍没有验收证据。
 
-## Continuity 项目协议同步
+## 历史：2026-09-12 项目协议同步
 
 本轮仅更新自有协议材料，以上客户端版本/官方来源保留首轮 2026-09-12 的核查时点，未重新启动客户端或模型。当前模板覆盖九命令：`init/status/check/checkpoint/context/handoff/accept/receipt/export`，本轮九条 `--help` 均退出 0。`receipt --id UUID` 只读查询；`export --output simple.json` 显式新建 review 文件、不覆盖；二者不是客户端原生会话命令。`no_references` 允许明确缺证的纯规划继续，不是 verified。详见 [接入说明](README.md)。主线程将独立做干净项目协议回放，不能用该回放替代 DSH 模型实接证据。
