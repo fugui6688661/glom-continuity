@@ -1,6 +1,6 @@
 # DeepSeek Harness: automatic read-only recovery candidate
 
-Development candidate, not included in the published Alpha.6. This is a small
+Alpha.7 adapter, not included in Alpha.6. This is a small
 host adapter, not a new memory store or a replacement for Harness.
 
 ## What has actually run

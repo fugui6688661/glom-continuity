@@ -6,9 +6,9 @@ Requires Python 3.10+. Keep the tool, demos and working data separate. The base 
 
 ## 版本与发布状态 / Version and release status
 
-本页下载的是已公开的 v0.1.0-alpha.6 预览版，不是稳定版；开发分支 `0.1.0-alpha.7` 尚未发行。Alpha.6 把现有 dev4 的项目记忆、`resume`、`doctor`、`return-work` 打包进 alpha。安装以[对应 Release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.6)的具名附件及配套清单为准，不把仓库文档或源码版本当作本机已更新的证明。
+本页对应 v0.1.0-alpha.7 开发者预览，不是稳定版。它保留项目记忆、`resume`、`doctor`、`return-work`，增加可选的 Harness 只读恢复与显式存储恢复。安装以[对应 Release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.7)实际提供的具名附件及校验清单为准；网页更新不代表本机已更新。
 
-This page downloads the published v0.1.0-alpha.6 preview, not a stable release. Development version `0.1.0-alpha.7` is not yet released. Use Alpha.6's named Release assets and checksums; updated source or documentation does not prove your installed copy was updated.
+This page targets the v0.1.0-alpha.7 developer preview, not stable production use. It adds optional Harness recovery and explicit storage recovery to existing project-memory features. Install only from the matching Release's available named assets and checksums; updated documentation does not upgrade your copy.
 
 已有项目不要重新 `init`；先看本页升级步骤。没有自动更新器，文档更新不会升级已安装程序。本页不提供 PyPI、Homebrew 或应用商店安装入口，不从同名陌生软件安装。
 
@@ -16,14 +16,14 @@ Do not reinitialize existing projects. Documentation changes do not upgrade an i
 
 ## 推荐入口：专用环境中的 wheel / Wheel in a dedicated environment
 
-先在工具存放位置新建专用虚拟环境。`.recaloom-alpha6` 必须尚不存在；已有此目录时先检查它，不覆盖、不删除。不要在系统 Python 中安装，不需要管理员权限或修改全局 PATH。
+先在工具存放位置新建专用虚拟环境。`.recaloom-alpha7` 必须尚不存在；已有此目录时先检查它，不覆盖、不删除。不要在系统 Python 中安装，不需要管理员权限或修改全局 PATH。
 
 Create a new dedicated environment in your tools directory. If that path already exists, inspect it instead of replacing it. Do not install into system Python; no administrator access or global PATH changes are needed.
 
 Mac / Linux：
 
 ```sh
-python3 -m venv .recaloom-alpha6
+python3 -m venv .recaloom-alpha7
 ```
 
 确认对应 Release 已提供下列具名 wheel 后，使用这一条安装命令。附件不可用时先核对发布页和版本，不换成旧包来完成新版教程。已从维护者取得本地候选 wheel 的审阅者，使用下一节的本地安装方式。
@@ -31,7 +31,7 @@ python3 -m venv .recaloom-alpha6
 Use this command after confirming the matching named wheel is available on its Release page. If it is unavailable, check that page and version instead of substituting an older package. Reviewers with a supplied candidate wheel can use the local route below.
 
 ```sh
-.recaloom-alpha6/bin/python -m pip install --no-index --no-deps "https://github.com/fugui6688661/glom-continuity/releases/download/v0.1.0-alpha.6/glom_continuity-0.1.0a6-py3-none-any.whl"
+.recaloom-alpha7/bin/python -m pip install --no-index --no-deps "https://github.com/fugui6688661/glom-continuity/releases/download/v0.1.0-alpha.7/glom_continuity-0.1.0a7-py3-none-any.whl"
 ```
 
 此命令会联网下载指定 wheel，不查包索引、不安装其他依赖、不调用模型。
@@ -41,12 +41,12 @@ This downloads the specified wheel over the network, without an index lookup, ot
 Windows PowerShell 先建环境：
 
 ```powershell
-py -3 -m venv .recaloom-alpha6
+py -3 -m venv .recaloom-alpha7
 ```
 
-然后将上方 pip 命令开头的 `.recaloom-alpha6/bin/python` 换成 `.\.recaloom-alpha6\Scripts\python.exe`，保留同一 URL 和参数。无需激活脚本或修改 PowerShell 执行策略。
+然后将上方 pip 命令开头的 `.recaloom-alpha7/bin/python` 换成 `.\.recaloom-alpha7\Scripts\python.exe`，保留同一 URL 和参数。无需激活脚本或修改 PowerShell 执行策略。
 
-Then use the same pip command with `.\.recaloom-alpha6\Scripts\python.exe` as its executable. No activation script or PowerShell-policy change is required.
+Then use the same pip command with `.\.recaloom-alpha7\Scripts\python.exe` as its executable. No activation script or PowerShell-policy change is required.
 
 ### 已提供的候选文件 / Supplied candidate files
 
@@ -55,7 +55,7 @@ Then use the same pip command with `.\.recaloom-alpha6\Scripts\python.exe` as it
 Choose either the local route or the release URL, not both. Verify the supplied candidate and its own checksums before installing it in the new environment:
 
 ```sh
-.recaloom-alpha6/bin/python -m pip install --no-index --no-deps ./glom_continuity-0.1.0a6-py3-none-any.whl
+.recaloom-alpha7/bin/python -m pip install --no-index --no-deps ./glom_continuity-0.1.0a7-py3-none-any.whl
 ```
 
 本地 wheel 安装不联网。Windows 同样替换为环境内 Python，并使用收到的文件路径。公开附件的 `SHA256SUMS` 可用 `shasum -a 256 -c SHA256SUMS` 校验，需备齐清单中所列文件；Windows 用 `Get-FileHash 文件名 -Algorithm SHA256` 逐项比较。哈希校验不是发布者签名认证。
@@ -67,22 +67,22 @@ A local wheel install is offline. On Windows use the environment Python and the 
 Mac / Linux：
 
 ```sh
-.recaloom-alpha6/bin/glom-continuity --version
-.recaloom-alpha6/bin/glom-continuity --help
-.recaloom-alpha6/bin/glom-continuity-demo --output ./installed-demo
+.recaloom-alpha7/bin/glom-continuity --version
+.recaloom-alpha7/bin/glom-continuity --help
+.recaloom-alpha7/bin/glom-continuity-demo --output ./installed-demo
 ```
 
 Windows：
 
 ```powershell
-.\.recaloom-alpha6\Scripts\glom-continuity.exe --version
-.\.recaloom-alpha6\Scripts\glom-continuity.exe --help
-.\.recaloom-alpha6\Scripts\glom-continuity-demo.exe --output .\installed-demo
+.\.recaloom-alpha7\Scripts\glom-continuity.exe --version
+.\.recaloom-alpha7\Scripts\glom-continuity.exe --help
+.\.recaloom-alpha7\Scripts\glom-continuity-demo.exe --output .\installed-demo
 ```
 
-alpha.6 的 CLI 版本应为 `0.1.0-alpha.6`，wheel 文件名使用 Python 版本形式 `0.1.0a6`。帮助应列有 `resume`、`doctor`、`return-work`；不符时先查调用路径，不在旧包上猜命令。
+alpha.7 的 CLI 版本应为 `0.1.0-alpha.7`，wheel 文件名使用 Python 版本形式 `0.1.0a7`。帮助应列有 `resume`、`doctor`、`return-work`；不符时先查调用路径，不在旧包上猜命令。
 
-Expect CLI version `0.1.0-alpha.6`; the wheel uses Python's `0.1.0a6` spelling. Confirm resume, doctor and return-work in help. A mismatch needs a path/version check, not guessed commands.
+Expect CLI version `0.1.0-alpha.7`; the wheel uses Python's `0.1.0a7` spelling. Confirm resume, doctor, return-work and recover-storage in help. A mismatch needs a path/version check, not guessed commands. Recovery is an explicit write operation, not a routine installation step.
 
 `installed-demo` 必须是新目录。打开其中的 `演示结果.md`，核对恢复、文件变化拒绝和重复领取拒绝；`events.json` 保留响应，`handoff-review.json` 是审阅快照。这是合成 CLI 协议回放，不是两个模型在工作，也不单独证明所有恢复或记忆功能通过验收。
 
@@ -98,7 +98,7 @@ Use a new demo directory; existing data is not overwritten. The generated report
 
 Supply the absolute project path, the matching Skill's absolute path, and the complete executable prefix.
 
-wheel 安装不保证包含 `skills/`、文档或 `scripts/continuity.py`。另外取得同一 alpha.6 Release 的具名便携附件，或与工具匹配的候选/固定源码，完整保留目录结构供助手读 Skill 及其相对引用；不要只复制一个 Skill 文件后让文档链接失效。旧 Skill 或任意更新的 main 不能证明版本匹配。取得文档并不要求再安装第二份工具。
+wheel 安装不保证包含 `skills/`、文档或 `scripts/continuity.py`。另外取得同一 alpha.7 Release 的具名便携附件，或与工具匹配的候选/固定源码，完整保留目录结构供助手读 Skill 及其相对引用；不要只复制一个 Skill 文件后让文档链接失效。旧 Skill 或任意更新的 main 不能证明版本匹配。取得文档并不要求再安装第二份工具。
 
 A wheel does not guarantee a sibling skills, docs or scripts directory. Obtain the matching Release's named portable asset, or matching supplied candidate/pinned source, and preserve its documentation layout. Do not assume an old Skill or moving main branch matches the wheel. Reading those files does not require installing another executable.
 
@@ -137,7 +137,7 @@ Resume is read-only. Its states distinguish missing storage, no checkpoint, requ
 
 ### 异常退出后需要恢复存储 / Storage recovery after a crash
 
-Alpha.7 开发候选严格区分只读恢复和数据库修复。`STORAGE_RECOVERY_REQUIRED`
+Alpha.7严格区分只读恢复和数据库修复。`STORAGE_RECOVERY_REQUIRED`
 表示当前只读连接无法继续，不能把它当成空项目重新 `init`，也不能删除日志文件。
 SQLite 在异常写入后可能需要先回滚尚未提交的事务；这一步本身需要写权限。
 自动恢复和 MCP 只读工具不会代你执行，也不会返回旧缓存冒充已恢复。
@@ -156,7 +156,7 @@ SQLite 在异常写入后可能需要先回滚尚未提交的事务；这一步�
 业务完成。成功结果只返回实际可读的项目状态；若原本正常，不声称发生过回滚。
 失败则保留备份与原件继续排查；不要循环修复、重建或删库。MCP 不提供这个命令。
 
-In the Alpha.7 candidate, `STORAGE_RECOVERY_REQUIRED` preserves the strictly
+In Alpha.7, `STORAGE_RECOVERY_REQUIRED` preserves the strictly
 read-only boundary. After stopping all users and backing up the whole storage
 directory and referenced files to a new location, explicitly authorize the
 CLI-only `recover-storage` for the exact project. It permits native SQLite
@@ -223,7 +223,7 @@ Export creates a new review snapshot, not a database import, full backup or auth
 CLI 可以单独使用。需要本地 stdio MCP 的宿主，按[MCP 接入](adapters/mcp.md)配置，并在同一专用环境另装依赖：
 
 ```sh
-.recaloom-alpha6/bin/python -m pip install 'mcp==2.2.0'
+.recaloom-alpha7/bin/python -m pip install 'mcp==2.2.0'
 ```
 
 这一步联网下载第三方依赖。Windows 换用环境内 Python。启动命令是环境内 `glom-continuity-mcp` 的绝对路径（Windows 为 `.exe`），启动参数带 `--project` 与项目绝对路径；单次工具调用不传项目。
@@ -269,7 +269,7 @@ State stays in the selected project; original files remain in place. Back up bot
 移除自己添加的 Skill/客户端配置，关闭对应 MCP 子进程，在新会话确认不再加载。wheel 卸载只使用专用环境：
 
 ```sh
-.recaloom-alpha6/bin/python -m pip uninstall glom-continuity
+.recaloom-alpha7/bin/python -m pip uninstall glom-continuity
 ```
 
 Windows 换用环境内 Python；便携版可移走工具文件。保留项目记忆，不删库排错。本工具不安装自启动守护进程。
@@ -285,14 +285,15 @@ Remove only the entries you added, close the associated MCP process, and uninsta
 | `NOT_INITIALIZED` / `NO_CHECKPOINT` | 仅在获准首次保存时初始化或保存 / Initialize or save only when authorized |
 | `UNSAFE_PATH` / `SENSITIVE_CONTENT` | 修正路径或清除敏感内容，不绕过 / Fix the input, do not bypass checks |
 | `IO_ERROR` / `UNRECOGNIZED_STORAGE` / `UNSUPPORTED_SCHEMA` / `UNSAFE_STORAGE` | 保留数据，停止写入并检查 / Preserve data, stop and investigate |
+| `STORAGE_RECOVERY_REQUIRED` | 先停止读写并完整备份，再[明确恢复存储](#storage-recovery-after-a-crash)；不删日志、不自动重试 / Back up, explicitly recover; never delete journals |
 
 完整规则见[接口说明](adapters/README.md)与[Skill](skills/project-continuity/SKILL.md)。公开反馈只附版本、系统、助手、失败步骤、错误码及虚构复现，不发密钥、公司资料或原始聊天。
 
 ## 实测范围 / What was tested
 
-[实测记录](docs/verification.md)按日期、版本和哈希区分协议、真实助手、安装包与公开发行，包含原始失败和未验项。历史 Codex → DeepSeek Harness → 新 Codex 接力不是 alpha.6 的新实测。Windows runner 的协议/安装通过也不代表普通 Windows 实机全部验证。外部真人首用、完整公平效果对照及其他宿主仍待验证，没有 token 节省或优于竞品的结论。
+[实测记录](docs/verification.md)按日期、版本和哈希区分协议、真实助手、安装包与公开发行，包含原始失败和未验项。历史 Codex → DeepSeek Harness → 新 Codex 接力不是 alpha.7 的新实测。Windows runner 的协议/安装通过也不代表普通 Windows 实机全部验证。外部真人首用、完整公平效果对照及其他宿主仍待验证，没有 token 节省或优于竞品的结论。
 
-The verification record retains dated, version-bound evidence and failures. Historical relay/CI results do not certify alpha.6, physical devices or all hosts. No measured token-saving or competitive claim is made.
+The verification record retains dated, version-bound evidence and failures. Historical relay/CI results do not certify alpha.7, physical devices or all hosts. No measured token-saving or competitive claim is made.
 
 需要重跑源码协议测试时，仅在包含 tests 的匹配便携包/源码目录运行：
 
@@ -310,9 +311,9 @@ Alpha.5 remains the historical compatible preview. Its named assets preserve the
 
 ### 获取固定的 dev4 源码 / Get the pinned dev4 source
 
-以下保留为历史复现路径，不是普通用户的 alpha.6 安装入口。需要 Git；在工具存放目录执行，不在业务项目或旧安装目录内运行。`recaloom-dev4` 必须不存在；已有时先检查，不覆盖、不删除。
+以下保留为历史复现路径，不是普通用户的 alpha.7 安装入口。需要 Git；在工具存放目录执行，不在业务项目或旧安装目录内运行。`recaloom-dev4` 必须不存在；已有时先检查，不覆盖、不删除。
 
-This pinned source route is retained for historical comparison, not normal alpha.6 onboarding. Use a new tools directory, outside working projects and existing installations.
+This pinned source route is retained for historical comparison, not normal alpha.7 onboarding. Use a new tools directory, outside working projects and existing installations.
 
 ```sh
 git clone --no-checkout https://github.com/fugui6688661/glom-continuity.git recaloom-dev4
@@ -323,6 +324,6 @@ python3 -B scripts/continuity.py --version
 python3 -B scripts/continuity.py --help
 ```
 
-应看到相同完整提交号和 `0.1.0.dev4`，帮助包含 resume、doctor、return-work。Windows 最后两行换用 `py -3`。Git 会联网取公开源码，不启动服务或初始化项目。固定提交不是发行签名，这个快照也不是 alpha.6 包的验收。
+应看到相同完整提交号和 `0.1.0.dev4`，帮助包含 resume、doctor、return-work。Windows 最后两行换用 `py -3`。Git 会联网取公开源码，不启动服务或初始化项目。固定提交不是发行签名，这个快照也不是 alpha.7 包的验收。
 
-Expect the exact commit and dev4 version. On Windows use `py -3`. Git downloads source without starting a service or initializing a project. A pinned commit is not publisher authentication or alpha.6 package validation.
+Expect the exact commit and dev4 version. On Windows use `py -3`. Git downloads source without starting a service or initializing a project. A pinned commit is not publisher authentication or alpha.7 package validation.

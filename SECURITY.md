@@ -1,7 +1,7 @@
 # Security and trust boundaries
 
-Publication status: Alpha.6 is a public developer preview. This tree prepares
-Alpha.7, not a stable release. See [dated verification](docs/verification.md) and
+Version scope: Alpha.7 is a developer preview, not stable production use.
+Use the matching Release assets. See [dated verification](docs/verification.md) and
 [managed-host checks](docs/managed-host-validation.md) for version-specific
 evidence. The risk limits below apply regardless of publication or version label.
 

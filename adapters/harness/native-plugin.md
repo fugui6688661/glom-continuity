@@ -1,6 +1,6 @@
 # Native Harness controls — development candidate
 
-This wrapper is **not in the published Alpha.6**. It has been exercised through
+This Alpha.7 wrapper is **not in Alpha.6**. It has been exercised through
 the installed DeepSeek Harness 0.1.5-rc.1 command, settings and AgentLoop APIs.
 Separate installed-command UI checks now cover project selection, visible
 controls, normal process restart and detachment in a fresh managed home; see

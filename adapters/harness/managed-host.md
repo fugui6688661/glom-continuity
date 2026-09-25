@@ -1,6 +1,6 @@
 # A separate Harness home for Recaloom
 
-Development candidate, **not included in published Alpha.6**. These commands
+Alpha.7 feature, **not included in Alpha.6**. These commands
 start the installed official Harness Web runtime in an independently owned home.
 They do not modify the Harness window or profile you already use.
 

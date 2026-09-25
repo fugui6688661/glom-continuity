@@ -1,13 +1,14 @@
 # Managed Harness: tested scope
 
-Local development candidate, tested 2026-09-25. **Not included in published Alpha.6.**
+Alpha.7 scope, tested 2026-09-25. **Not included in Alpha.6.**
 
-The development runtime is now `0.1.0-alpha.7`; it is not yet published. The
+The runtime is `0.1.0-alpha.7`. The
 historical UI checks below concern the earlier fixed runtime, not a fresh UI
 acceptance of every later CI/documentation change. See the [CI lane split](platform-validation.md)
-for the required fresh-SDK checks and the remaining hosted-platform validation.
+for the passing fresh-SDK job and four portable environments. Those CI checks
+do not replace the historical GUI observations below.
 
-## What was exercised
+## Earlier fixed-runtime and UI checks
 
 The tested runtime was the official DeepSeek Harness 0.1.5-rc.1 with Cordis 4.0.2,
 Schemastery 3.18.2, Node 26.6.0 and Python 3.12.14 on macOS. A fresh virtual
@@ -31,6 +32,17 @@ Separate earlier production-AgentLoop tests used a synthetic model to exercise
 awaited recovery and refusal when input evidence changed. Those are host contract
 tests, not paid-model quality benchmarks. The public-entry UI run did not send a
 model prompt or save a new checkpoint.
+
+## Final code checks
+
+Code revision `10e78d81d66a5715ca00d3646708634ea592eb9b` adds two independently
+rechecked fixes: deferred host exit revalidates its pause receipt, and readonly
+recovery refuses a SQLite hot journal until explicit `recover-storage` repair.
+Its fixed local package passed 158 portable tests, 35 Node tests and one actual
+host lifecycle test. A fresh wheel installation passed that lifecycle again
+from an unrelated directory. The [hosted CI record](platform-validation.md)
+separately records the same code's platform results. No new UI or real-model
+quality claim is inferred from those checks.
 
 ## A failure that changed the implementation
 
