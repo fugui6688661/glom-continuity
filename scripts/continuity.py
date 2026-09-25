@@ -15,7 +15,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0-alpha.6'
+VERSION = '0.1.0-alpha.7'
 PRODUCT_ID = 'glom-continuity'
 DISPLAY_NAME = 'Recaloom'
 SOURCE_URL = 'https://github.com/fugui6688661/glom-continuity'
@@ -262,7 +262,7 @@ def validate_storage(db):
     if len(projects) != 1:
         raise Fault('UNRECOGNIZED_STORAGE', 'Project identity is missing or ambiguous; preserve storage for review')
     if projects[0]['schema_version'] != 1:
-        raise Fault('UNSUPPORTED_SCHEMA', 'Unknown project schema; no changes made')
+        raise Fault('UNSUPPORTED_SCHEMA', 'Unknown project schema; no schema migration or checkpoint was attempted')
 
 
 @contextmanager
@@ -298,6 +298,19 @@ def database(root, initialize=False, readonly=False):
         else:
             validate_storage(db)
         yield db
+    except sqlite3.OperationalError as exc:
+        # SQLite can require writes even for SELECT after an interrupted commit.
+        # Python 3.10 lacks sqlite_errorcode; SQLite's fixed English error text
+        # supplies the same bounded classification there, never a writable retry.
+        code = getattr(exc, 'sqlite_errorcode', None)
+        if readonly and ((isinstance(code, int) and code & 255 == 8) or
+                         str(exc) == 'attempt to write a readonly database'):
+            raise Fault('STORAGE_RECOVERY_REQUIRED',
+                        'Read-only inspection requires storage recovery; no context returned. '
+                        'Stop project users and back up the complete .continuity directory and references. '
+                        'Then explicitly authorize recover-storage for this exact project. '
+                        'Do not delete journals, initialize again or retry automatically with write access.') from None
+        raise
     finally:
         db.close()
 
@@ -406,6 +419,7 @@ def parser():
     init = sub.add_parser('init')
     init.add_argument('--name', required=True)
     sub.add_parser('status')
+    sub.add_parser('recover-storage', help='Explicitly permit SQLite crash rollback and inspect existing state; no initialization or migration')
     sub.add_parser('check')
     context = sub.add_parser('context')
     context.add_argument('--max-chars', type=int, default=6000)
@@ -413,6 +427,7 @@ def parser():
     resume = sub.add_parser('resume', help='Inspect and recover in one read-only call; never initializes or accepts handoffs')
     resume.add_argument('--max-chars', type=int, default=6000)
     resume.add_argument('--query', default='', help='Literal task keywords for project habits/workflows')
+    resume.add_argument('--expect-project-id', help='Reject a replaced or different project before recovering its contents')
     checkpoint = sub.add_parser('checkpoint')
     checkpoint.add_argument('--from-file', required=True)
     checkpoint.add_argument('--expect-revision', type=int, required=True)
@@ -462,7 +477,12 @@ def execute(args):
                 'storage': storage}
     if args.command == 'resume' and args.query:
         plain(args.query, 'query', 2000)
+    expected_project = getattr(args, 'expect_project_id', None) if args.command == 'resume' else None
+    if expected_project is not None:
+        plain(expected_project, 'expect_project_id', 80)
     if args.command == 'resume' and not (root / '.continuity').exists() and not (root / '.continuity').is_symlink():
+        if expected_project is not None:
+            raise Fault('PROJECT_MISMATCH', 'The bound project is no longer present; no context recovered')
         data = {'recovery_state': 'not_initialized', 'project_id': None,
                 'revision': 0, 'checkpoint_id': None, 'instruction_authority': 'none',
                 'check': {'state': 'not_initialized', 'issues': [], 'semantic_completion_verified': False},
@@ -475,9 +495,13 @@ def execute(args):
         with database(root, initialize=True) as db:
             db.execute('INSERT INTO project VALUES (?, ?, 1)', (str(uuid.uuid4()), name))
             return state(db)
-    with database(root) as db:
+    with database(root, readonly=args.command in ('resume', 'context', 'status', 'check', 'receipt')) as db:
         if args.command == 'resume':
             db.execute('BEGIN')
+            if expected_project is not None:
+                actual_project = db.execute('SELECT id FROM project').fetchone()['id']
+                if actual_project != expected_project:
+                    raise Fault('PROJECT_MISMATCH', 'The selected project differs from the authorized binding; no context recovered')
             current = state(db)
             if current['checkpoint'] is None:
                 data = {'recovery_state': 'no_checkpoint', 'project_id': current['project_id'],
@@ -487,7 +511,9 @@ def execute(args):
                 if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
                     raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
                 return data
-        if args.command == 'status':
+        if args.command in ('status', 'recover-storage'):
+            # A recovery request opens writable only to let SQLite complete its
+            # own crash protocol. It creates no checkpoint or application table.
             return state(db)
         if args.command == 'check':
             return check_recorded_references(root, db, state(db))

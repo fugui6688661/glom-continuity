@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Bounded recovery checks through nine public CLI commands, synthetic data only.
+"""Bounded recovery checks through public CLI commands, synthetic data only.
 
-No implementation imports or SQLite connections. Storage bytes are touched only
-to inject faults/copy stopped backups; application truth comes from the CLI.
+No implementation imports. A separate SQLite writer is used only to inject a
+synthetic crash, never to query application truth; assertions use the public CLI.
+Storage bytes are inspected only for fault preconditions and non-mutation checks.
 Run this file directly with -B; optional unittest names select individual cases.
 CONTINUITY_RECOVERY_EXPECTED_SHA256 optionally pins one review run; by default
 only source stability during the run is required, not a historical source hash.
@@ -30,7 +31,7 @@ import unittest
 CLI = Path(__file__).resolve().parents[1] / "scripts" / "continuity.py"
 START_SHA256 = None
 PUBLIC_COMMANDS = {"init", "status", "check", "context", "checkpoint",
-                   "handoff", "accept", "receipt", "export"}
+                   "handoff", "accept", "receipt", "export", "resume", "recover-storage"}
 FIELDS = ("objective", "next_action", "constraints", "decisions", "unresolved")
 INPUT = "inputs/茶单.csv"
 
@@ -80,7 +81,7 @@ class RecoveryIndependentTests(unittest.TestCase):
         self.assertTrue(target.resolve().is_relative_to(self.root.resolve()))
         return [sys.executable, "-B", str(CLI), "--project", str(target), *args]
 
-    def cli(self, *args, project=None, code="OK"):
+    def cli(self, *args, project=None, code="OK", return_envelope=False):
         result = subprocess.run(self.argv(*args, project=project), cwd=self.root,
                                 env=self.env, capture_output=True, text=True,
                                 encoding="utf-8", timeout=15)
@@ -90,12 +91,14 @@ class RecoveryIndependentTests(unittest.TestCase):
             self.fail(f"{args}: non-JSON rc={result.returncode}; {result.stdout!r}; {result.stderr!r}")
         self.calls.append([args[0], result.returncode, response.get("code")])
         self.assertEqual(result.stderr, "", f"{args}: {result.stderr}")
-        self.assertEqual(result.returncode, 0 if code == "OK" else 2, str(response))
-        self.assertEqual(response.get("code"), code, str(response))
-        self.assertIs(response.get("ok"), code == "OK", str(response))
-        if code != "OK":
+        allowed = (code,) if isinstance(code, str) else code
+        self.assertIn(response.get("code"), allowed, str(response))
+        successful = response["code"] == "OK"
+        self.assertEqual(result.returncode, 0 if successful else 2, str(response))
+        self.assertIs(response.get("ok"), successful, str(response))
+        if not successful:
             self.assertIsNone(response.get("data"), str(response))
-        return response["data"]
+        return response if return_envelope else response["data"]
 
     def draft(self, document, project=None, name="checkpoint-input.json"):
         path = (project or self.project) / name
@@ -445,7 +448,18 @@ class RecoveryIndependentTests(unittest.TestCase):
                       "draft_bytes": draft.stat().st_size, "power_failure_test": False}
             emit("termination", **record)
             self.assertEqual(stderr, b"")
-            current = self.cli("status", project=candidate)
+            crashed = self.snapshots(candidate)
+            try:
+                observed = self.cli("status", project=candidate,
+                                    code=("OK", "STORAGE_RECOVERY_REQUIRED"), return_envelope=True)
+            finally:
+                self.assertEqual(self.snapshots(candidate), crashed,
+                                 "Read-only status changed crash evidence")
+            if observed["code"] == "STORAGE_RECOVERY_REQUIRED":
+                self.cli("recover-storage", project=candidate)
+                current = self.cli("status", project=candidate)
+            else:
+                current = observed["data"]
             self.assertEqual(current["project_id"], old["project_id"])
             self.assertIn(current["revision"], (1, 2), "Lost, reset or impossible revision after termination")
             if current["revision"] == 1:
@@ -485,6 +499,79 @@ class RecoveryIndependentTests(unittest.TestCase):
     @unittest.skipUnless(os.name == "posix", "SIGKILL is POSIX-only; not verified on Windows")
     def test_12_sigkill_during_stdout_recovers_committed_revision(self):
         self.killed_checkpoint("stdout", attempts=5)
+
+    def test_13_hot_journal_readers_refuse_without_mutating_crash_files(self):
+        """Only explicit recover-storage repairs a hot journal, without advancing work."""
+        self.seed()
+        old = self.cli("status")
+        storage = self.project / ".continuity" / "state.sqlite3"
+        original_hash = hashlib.sha256(storage.read_bytes()).hexdigest()
+        # This independent fault injector knows no application tables or payloads.
+        # A tiny cache forces SQLite to spill an uncommitted schema/data change,
+        # synchronizing a real rollback journal before the deliberate process exit.
+        # os._exit bypasses connection cleanup on POSIX and Windows alike.
+        worker = r'''
+import os, sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute('PRAGMA journal_mode=DELETE')
+db.execute('PRAGMA synchronous=FULL')
+db.execute('PRAGMA cache_size=1')
+db.execute('PRAGMA cache_spill=ON')
+db.execute('BEGIN IMMEDIATE')
+db.execute('CREATE TABLE synthetic_crash_payload (body BLOB)')
+for _ in range(64):
+    db.execute('INSERT INTO synthetic_crash_payload VALUES (zeroblob(16384))')
+print('UNCOMMITTED_SPILL_READY', flush=True)
+os._exit(73)
+'''
+        process = subprocess.run([sys.executable, "-B", "-c", worker, str(storage)],
+                                 cwd=self.root, env=self.env, capture_output=True,
+                                 text=True, encoding="utf-8", timeout=15)
+        self.assertEqual(process.returncode, 73, process.stdout + process.stderr)
+        self.assertEqual(process.stderr, "")
+        self.assertEqual(process.stdout.strip(), "UNCOMMITTED_SPILL_READY")
+        journal = storage.with_name(storage.name + "-journal")
+        journal_bytes = journal.read_bytes()
+        self.assertGreater(len(journal_bytes), 512)
+        self.assertEqual(journal_bytes[:8], bytes.fromhex("d9d505f920a163d7"),
+                         "An early zero-header journal does not exercise rollback")
+        self.assertGreater(int.from_bytes(journal_bytes[8:12], "big"), 0)
+        self.assertNotEqual(hashlib.sha256(storage.read_bytes()).hexdigest(), original_hash,
+                            "The writer must actually spill before crashing")
+        damaged = self.snapshots()
+        emit("hot_journal", test=self._testMethodName, returncode=process.returncode,
+             journal_bytes=len(journal_bytes), database_changed=True,
+             power_failure_test=False)
+        # Every command gets the same untouched crash fixture. An earlier command
+        # must not silently repair the journal and make later checks vacuous.
+        for command in ("status", "check", "context", "resume"):
+            with self.subTest(command=command):
+                candidate = self.root / ("hot-journal-" + command)
+                shutil.copytree(self.project, candidate)
+                self.assertEqual(self.snapshots(candidate), damaged)
+                try:
+                    self.cli(command, project=candidate, code="STORAGE_RECOVERY_REQUIRED")
+                finally:
+                    self.assertEqual(self.snapshots(candidate), damaged,
+                                     "Read-only recovery modified the database or crash journal")
+        self.assertEqual(self.snapshots(), damaged)
+        # The owner explicitly authorizes native storage recovery. No replacement
+        # backup, init, checkpoint, or cached context may make this check pass.
+        self.cli("recover-storage")
+        recovered_files = self.snapshots()
+        self.assertEqual(self.cli("status"), old,
+                         "Storage recovery changed project identity, revision, or saved payload")
+        self.assertEqual(self.cli("check")["state"], "references_current")
+        self.assert_context(old)
+        resumed = self.cli("resume")
+        self.assertEqual(resumed["project_id"], old["project_id"])
+        self.assertEqual(resumed["revision"], old["revision"])
+        self.assertEqual(resumed["checkpoint_id"], old["checkpoint_id"])
+        self.assertIn(old["checkpoint"]["objective"], resumed["text"])
+        self.assertEqual(resumed["instruction_authority"], "none")
+        self.assertIs(resumed["check"]["semantic_completion_verified"], False)
+        self.assertEqual(self.snapshots(), recovered_files,
+                         "Reads mutated storage after explicit recovery")
 
 
 if __name__ == "__main__":

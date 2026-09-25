@@ -25,7 +25,7 @@ jobs:
       ((github.event_name == 'workflow_dispatch' && inputs.reviewed) ||
        (github.event_name == 'pull_request' &&
         github.event.pull_request.head.repo.full_name == github.repository))
-    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    name: Portable / ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -125,6 +125,21 @@ jobs:
                   'test_12_sigkill_during_stdout_recovers_committed_revision')})
               permitted['test_project_memory.ProjectMemory.test_symlinked_memory_cannot_load_another_project'] = (
                   'POSIX symlink fixture; Windows requires separate privilege handling', 'posix_symlink_unverified')
+              permitted.update({'test_harness_install.HarnessInstall.' + name:
+                  ('Private-directory installer currently supports POSIX only', 'harness_posix_installer_unverified') for name in (
+                  'test_preflight_is_read_only_and_distinguishes_prepared_from_running',
+                  'test_install_copies_complete_bundle_without_starting_or_changing_host',
+                  'test_refuses_shared_writable_sdk_before_creating_bundle',
+                  'test_executable_bundle_must_stay_outside_project',
+                  'test_status_rejects_a_different_project_recreated_at_same_path',
+                  'test_modified_file_is_rejected_and_left_intact',
+                  'test_relocated_bundle_is_rejected_without_rewriting_absolute_bindings',
+                  'test_bundle_preserves_the_invoking_python_environment',
+                  'test_path_resolution_loop_returns_json_not_traceback',
+                  'test_unsupported_sdk_and_wrong_project_do_not_create_bundle',
+                  'test_bundle_file_links_are_not_followed',
+                  'test_partial_installation_is_not_repaired_or_reported_ready',
+                  'test_preflight_does_not_run_selected_sdk_code')})
               skipped = []
               for method, owner, reason in re.findall(
                       r'^([A-Za-z0-9_]+) \(([A-Za-z0-9_.]+)\) \.\.\. skipped (.*)$', stderr, re.M):
@@ -139,7 +154,7 @@ jobs:
                   stop = headers[index + 1].start() if index + 1 < len(headers) else len(stderr)
                   problems.append({'state': header[1].lower(), 'test': identifier(header[2], header[3]),
                                    **failure_detail(stderr[header.end():stop])})
-              valid = bool(ran and int(ran[1]) > 0 and end and end[1] == 'OK'
+              valid = bool(ran and int(ran[1]) > counts['skipped'] and end and end[1] == 'OK'
                            and not any(counts[key] for key in counts if key != 'skipped')
                            and len(skipped) == counts['skipped']
                            and all(item['allowed'] for item in skipped))
@@ -162,6 +177,9 @@ jobs:
               'capabilities': {name: hasattr(os, name) for name in ('mkfifo', 'symlink', 'O_NONBLOCK', 'O_BINARY')},
               'source_sha256': {}, 'phases': {},
               'real_model_handoff_verified': False, 'publication_authorized': False,
+              'harness_runtime_verified': False,
+              'host_evidence_job': 'Required Harness / macOS',
+              'windows_installed_host_subchecks_verified': False,
           }
 
           def save_report():
@@ -215,7 +233,11 @@ jobs:
                                   isinstance(v, str) and re.fullmatch(r'[A-Za-z0-9.+-]{1,80}', v) for v in versions.values()):
                               raise ValueError('Invalid dependency metadata')
                           report['dependencies'] = versions
-                          tests = run_phase('unittest', ['-m', 'unittest', 'discover', '-s', 'tests', '-v'], 300)
+                          inventory = run_phase('coverage_inventory', ['scripts/ci_plan.py', 'check'], 15)
+                          if inventory is None or inventory.returncode != 0:
+                              raise ValueError('Coverage inventory failed')
+                          report['coverage'] = json.loads(inventory.stdout)
+                          tests = run_phase('unittest', ['scripts/ci_plan.py', 'portable'], 300)
                           if tests is not None:
                               report['unittest'] = test_summary(tests.stderr, os.name == 'nt')
                               if not report['unittest']['acceptance_valid']:
@@ -229,7 +251,7 @@ jobs:
                           report['phases']['smoke']['state'] = 'failed'
                       else:
                           report['smoke'] = {'state': 'protocol_demo_passed', 'real_model_handoff_verified': False}
-              required = ('dependencies', 'sdk_and_builder', 'unittest', 'smoke')
+              required = ('dependencies', 'sdk_and_builder', 'coverage_inventory', 'unittest', 'smoke')
               passed = all(report['phases'].get(name, {}).get('state') == 'passed' for name in required)
               report['state'] = ('passed_with_platform_skips' if report.get('unittest', {}).get('skipped')
                                  else 'passed') if passed else 'failed'
@@ -249,6 +271,73 @@ jobs:
         with:
           name: verify-${{ matrix.os }}-py${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/continuity-results/summary.json
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+          overwrite: false
+
+  harness:
+    if: >-
+      github.repository == 'fugui6688661/glom-continuity' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.reviewed) ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    name: Required Harness / macOS
+    runs-on: macos-14
+    timeout-minutes: 12
+    steps:
+      - name: Checkout only this revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Set up the checked Node version without caching
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '26.6.0'
+      - name: Install the locked SDK without lifecycle scripts or model accounts
+        run: npm ci --prefix ci/harness --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org --fetch-retries=0 --fetch-timeout=20000
+      - name: Require every native suite under loopback-only containment
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+          root = Path.cwd()
+          target = Path(os.environ['RUNNER_TEMP']) / 'harness-results'
+          target.mkdir(mode=0o700, exist_ok=False)
+          env = {key: os.environ[key] for key in ('PATH',) if key in os.environ}
+          result = subprocess.run([sys.executable, '-B', 'scripts/ci_harness.py',
+              '--sdk-package', str(root / 'ci/harness/node_modules/@deepseek-ai/dsh/package.json'),
+              '--node', shutil.which('node') or ''], env=env, capture_output=True, text=True)
+          try:
+              report = json.loads(result.stdout)
+          except (ValueError, TypeError):
+              report = {'state': 'failed', 'reason': 'RUNNER_RESULT_INVALID', 'host_verified': False}
+          report.update(commit=os.environ['GITHUB_SHA'], run_id=os.environ['GITHUB_RUN_ID'],
+                        attempt=os.environ['GITHUB_RUN_ATTEMPT'],
+                        hosted=True, publication_authorized=False)
+          (target / 'summary.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write('## Required Harness checks\n\n```json\n' + json.dumps(report, indent=2) + '\n```\n')
+          passed = result.returncode == 0 and report.get('state') == 'passed' and report.get('host_verified') is True
+          print('Required Harness validation: ' + ('passed' if passed else 'failed'))
+          sys.exit(0 if passed else 1)
+      - name: Retain only the sanitized host summary
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: harness-macos-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/harness-results/summary.json
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: false

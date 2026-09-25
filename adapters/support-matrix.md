@@ -1,6 +1,14 @@
 # 接入与版本支持矩阵
 
-## Alpha.6：工具能力与宿主实接分开
+## Alpha.7：Harness原生自动恢复
+
+2026-09-25本机验证仅对应官方DSH **0.1.5-rc.1**、macOS、独立受管Web profile，不是下方Alpha.6发行包的能力。已验原生执行引擎的合成恢复合同、安装wheel的公开CLI、真实鉴权页面、目录选择、命令反馈、正常重开暂停和停用保留数据。[详细记录](../docs/managed-host-validation.md)保留中央工作区选择显示问题。
+
+该启动器只支持POSIX，实际宿主运行与界面验证仅在macOS完成；没有验证Windows宿主。日常profile迁移、自动保存、真实模型效果及其他Agent生命周期适配尚未完成。不能用通用CLI/MCP可调用来替代这些宿主层验收。
+
+Alpha.7 保留基础工具并新增 CLI-only `recover-storage`，共 13 个核心 CLI 命令；MCP 仍是默认 6 个只读工具、显式启用写操作后 12 个，不会自动取得修库权限。[本轮 CI](../docs/platform-validation.md)已跑过四环境和独立 macOS 宿主检查；不代表每个宿主的 GUI 或真实模型效果通过。
+
+## Alpha.6 历史范围：工具能力与宿主实接分开
 
 Alpha.6 提供 12 个 CLI 命令；本地 MCP 默认 6 个只读工具，启用写操作后共 12 个。安装见 [INSTALL](../INSTALL.md)，具体工具见 [MCP 接入](mcp.md)。没有远端 HTTP 服务、跨电脑实时同步或一键替所有宿主配置 MCP。
 

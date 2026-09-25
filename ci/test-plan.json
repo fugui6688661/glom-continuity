@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "portable_py": [
+    "tests/test_automatic_recovery.py",
+    "tests/test_ci_harness.py",
+    "tests/test_ci_plan.py",
+    "tests/test_cli.py",
+    "tests/test_delivery.py",
+    "tests/test_doctor.py",
+    "tests/test_field_lessons.py",
+    "tests/test_harness_install.py",
+    "tests/test_harness_package.py",
+    "tests/test_independent.py",
+    "tests/test_installation.py",
+    "tests/test_mcp.py",
+    "tests/test_mcp_independent.py",
+    "tests/test_project_memory.py",
+    "tests/test_recovery_independent.py",
+    "tests/test_resume.py",
+    "tests/test_return_work.py"
+  ],
+  "harness_py": [
+    "tests/test_managed_host.py"
+  ],
+  "harness_node": [
+    "tests/test_dsh_client_notice.mjs",
+    "tests/test_dsh_desktop_plugin.mjs",
+    "tests/test_dsh_native_races.mjs",
+    "tests/test_dsh_recovery.mjs",
+    "tests/test_dsh_runtime.mjs",
+    "tests/test_managed_control.mjs"
+  ],
+  "exclusions": [
+    {
+      "file": "tests/test_dsh_adapter.py",
+      "reason": "Python wrapper excluded: the required harness_node lane executes tests/test_dsh_recovery.mjs directly and validates its own results."
+    }
+  ]
+}

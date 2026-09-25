@@ -1,4 +1,62 @@
-# 跨平台 CI 草案与验证边界
+# 跨平台 CI 与验证边界
+
+## 2026-09-25：Alpha.7 两条检查线路与本轮结果
+
+PR #5 的代码提交 `10e78d81d66a5715ca00d3646708634ea592eb9b` 已完成
+[GitHub Actions 36083156588](https://github.com/fugui6688661/glom-continuity/actions/runs/36083156588)。
+五份下载摘要一致指向该 PR 的合并测试引用
+`1fe6fe0b33c08bf0eca5ea7ed9d89c7a697394fa`，不是 Alpha.6 旧成绩。
+后续文档提交及最终发行包的复验以对应 Release 的精确提交、运行链接和附件哈希为准。
+
+| 实际检查 | 结果 |
+| --- | --- |
+| Linux / Python 3.10.21 | 158 通过，0 跳过 |
+| Linux / Python 3.12.14 | 158 通过，0 跳过 |
+| macOS arm64 / Python 3.12.10 | 158 通过，0 跳过 |
+| Windows AMD64 / Python 3.12.10 | 136 通过，22 项预声明跳过，0 失败 |
+| Required Harness / macOS | 六个 Node 文件共 35 通过、0 跳过；真实宿主 CLI 复合检查 1 通过，临时宿主清理通过 |
+
+Portable 摘要中的 CLI SHA-256 均为
+`ba00957e70fba45ae893158a3fee0a7e731d0bd93b2b0f8cc61c26282e0d1baa`。
+宿主检查使用 Node 26.6.0 / DSH 0.1.5-rc.1；这轮没有付费模型调用或新的 GUI 验收。
+
+- **Portable**：保留 Linux/Python 3.10、Linux/Python 3.12、Windows/Python
+  3.12、macOS/Python 3.12 四环境，执行显式清单内的 Python 测试、安装验证和
+  合成协议回放，不据此声称 Harness 宿主已通过。
+- **Required Harness / macOS**：固定 Node 26.6.0，使用独立 `npm ci` 安装
+  锁定的官方 DSH 0.1.5-rc.1 及配套依赖。禁用 npm 生命周期脚本。逐个运行六个
+  Node 测试文件和真实受管宿主 CLI 测试；缺 SDK、空套件、跳过、失败或超时
+  均拒绝通过。运行时仅允许本机回环和 Unix socket，无模型密钥或日常 profile。
+
+`ci/test-plan.json` 把每个 `tests/test_*.py` / `tests/test_*.mjs` 分配到一条
+线路。唯一排除项是被直接 Node 检查替代的 Python 包装测试，并记录了理由。
+新增文件漏分配、重复、缺失、符号链接、畸形清单会先失败，不靠人工记得改命令。
+
+Windows 只允许精确 ID 和理由对应的 POSIX 跳过：原有九项，加私有目录安装器
+十三项；并单独披露打包测试中未在 Windows 执行的宿主子检查。任何整轮零执行、
+未知跳过、MCP SDK 或构建依赖缺失仍失败。适用范围不是“全平台自动恢复”。
+
+修复后的本机固定候选另跑过 158 项 Portable、35 项 Node 和一个真实宿主复合检查，
+均无跳过；新建环境安装其 wheel 后，从无关目录再次通过真实宿主复合检查。
+这些本机结果与上表托管 CI 分开记录。另将宿主时限设为六秒，
+实际得到超时失败而非通过。超时先中断测试以执行收尾；必要时通过本次临时 home
+的身份校验控制口停止宿主。不能确认停止则保留控制文件并标失败，不按磁盘 PID
+杀进程。强制杀死测试后的所有异常时序仍未穷尽。
+
+本地复现（在源码目录，Python 已装 MCP 与构建工具）：
+
+```sh
+python scripts/ci_plan.py check
+python scripts/ci_plan.py portable
+npm ci --prefix ci/harness --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+python scripts/ci_harness.py --sdk-package ci/harness/node_modules/@deepseek-ai/dsh/package.json
+```
+
+后两步需要受支持的 Node 和 macOS；下载依赖会联网，测试不调用付费模型。
+`--host-timeout-seconds 6` 仅用于故障检查，出现失败是该检查的预期结果。
+所有 action 固定完整 SHA；新增 setup-node v4 对应
+`49933ea5288caeca8642d1e84afbd3f7d6820020`。仍无发布权限、不上传原始测试日志。
+下方旧 discovery 命令、跳过数量和旧源码结论均属于其注明日期，不是新版清单。
 
 ## 2026-09-15：当前开发提交已完成CI
 

@@ -1,25 +1,27 @@
 # Recaloom · 续珞
 
+`0.1.0-alpha.7` 开发者预览。新增 DeepSeek Harness 的可选自动恢复：明确绑定并启用后，在开始工作前读回项目进度。首次接入默认暂停；普通对话不会自动保存。[实测范围](docs/managed-host-validation.md)。
+
 给用 AI 助手持续做项目的人。把目标、限制、已定事项和下一步留在项目里，换会话后读回；引用文件变了，就先审阅变化。一个助手也能用。
 
-本版本 v0.1.0-alpha.6 将现有 dev4 功能打包为新的预览版，不是稳定版。安装以对应 Release 的具名附件及配套清单为准；源码、安装包与实际调用的程序需分别核对版本。
+本页对应 v0.1.0-alpha.7，不是稳定版。请使用对应 Release 的具名附件及校验清单；旧版附件不会被替换，更新网页也不会升级你已安装的程序。
 
 [安装与首次使用](INSTALL.md) · [English](README.en.md)
 
-Mac / Linux，先在工具存放目录运行；`.recaloom-alpha6` 必须是新目录，不覆盖已有环境，也不安装到系统 Python：
+Mac / Linux，先在工具存放目录运行；`.recaloom-alpha7` 必须是新目录，不覆盖已有环境，也不安装到系统 Python：
 
 ```sh
-python3 -m venv .recaloom-alpha6
-.recaloom-alpha6/bin/python -m pip install --no-index --no-deps "https://github.com/fugui6688661/glom-continuity/releases/download/v0.1.0-alpha.6/glom_continuity-0.1.0a6-py3-none-any.whl"
-.recaloom-alpha6/bin/glom-continuity --version
+python3 -m venv .recaloom-alpha7
+.recaloom-alpha7/bin/python -m pip install --no-index --no-deps "https://github.com/fugui6688661/glom-continuity/releases/download/v0.1.0-alpha.7/glom_continuity-0.1.0a7-py3-none-any.whl"
+.recaloom-alpha7/bin/glom-continuity --version
 ```
 
-需要 Python 3.10+，版本应显示 `0.1.0-alpha.6`。固定附件不可用时先核对对应 Release，不换成旧包完成新版教程。Windows 路径替换、本地 wheel 和卸载见 INSTALL。
+需要 Python 3.10+，版本应显示 `0.1.0-alpha.7`。固定附件不可用时先核对对应 Release，不换成旧包完成新版教程。Windows 路径替换、本地 wheel 和卸载见 INSTALL。
 
 先跑一次合成演示，输出目录必须尚不存在：
 
 ```sh
-.recaloom-alpha6/bin/glom-continuity-demo --output ./recaloom-demo
+.recaloom-alpha7/bin/glom-continuity-demo --output ./recaloom-demo
 ```
 
 打开 `recaloom-demo/演示结果.md`。这是无模型调用的 CLI 协议回放，不是真实模型接力。
@@ -32,12 +34,20 @@ python3 -m venv .recaloom-alpha6
 
 安装不会让所有新聊天自动加载项目。wheel 用户需要另外取得匹配的 Skill，不能假定环境里有 `skills/` 或 `scripts/`。照[首次使用卡](docs/first-use.md)保存一个虚构小项目，再开新会话读回来。
 
-alpha.6 包含 dev4 已有的功能：
+保留既有的项目记忆与交接功能：
 
 - `resume`：一次读回项目状态、引用检查、选中的习惯或流程，以及待领取交接。它只读，不自动初始化、保存或领取。
 - [项目记忆](docs/project-memory.md)：保存经你确认的习惯和流程，按字面关键词选择；不扫描聊天、不训练模型，也不保证记全。
 - `doctor`：查看实际调用的版本、程序位置和项目存储状态。诊断成功不等于数据兼容或发布者身份得到认证。
 - [成果回存](docs/result-return.md)：用 `return-work` 将接手产物关联到已领取交接；普通单助手保存不需要交接。
+
+## 让 Harness 自动读回进度
+
+已有 Continuity 项目和受支持的 Harness SDK 时，按[原生适配安装](adapters/harness/native-plugin.md)接入一个独立的[本机 Web 入口](adapters/harness/managed-host.md)，不会改动你原来的 Harness 配置。
+
+用 `/recaloom resume` 启用，`/recaloom pause` 暂停，`/recaloom status` 查看绑定。它只恢复所选项目；切换会话、暂停或引用变化时，不应把旧结果注入新任务。此宿主路径已在 macOS 验证，不代表所有 Agent 都自动接好了。
+
+异常退出后若需要修库，只读恢复会明确拒绝；[单独的恢复流程](INSTALL.md#storage-recovery-after-a-crash)要求先备份，再明确授权，不靠静默重建项目。
 
 ## 需要第二个助手时
 
@@ -59,7 +69,7 @@ A 保存并创建交接，B 获准访问同一份本地项目后检查、领取�
 
 Recaloom 原名 glom-continuity。仓库、包名、命令、MCP 工具名和项目目录保持兼容；已有项目不要再次 `init`。旧 alpha.5 仍可按原有功能使用，但不会因文档更新而获得项目记忆、`resume`、`doctor` 或 `return-work`。升级步骤见 INSTALL。
 
-[实测记录](docs/verification.md)保留指定版本的 Codex → DeepSeek Harness → 新 Codex 合成接力、协议测试和跨系统 CI，也保留失败与未验项。这些记录不自动成为 alpha.6 包的验收结果。历史接力中曾保留过时的 `next_action` 文字；恢复记录后仍要核对当前任务和回执。
+[实测记录](docs/verification.md)保留指定版本的 Codex → DeepSeek Harness → 新 Codex 合成接力、协议测试和跨系统 CI，也保留失败与未验项。这些记录不自动成为 alpha.7 包的验收结果。历史接力中曾保留过时的 `next_action` 文字；恢复记录后仍要核对当前任务和回执。
 
 外部真人首次使用、完整公平效果对照、普通 Windows／Linux 实机体验和其他 MCP 宿主仍有未验项。没有 token 节省、返工减少或优于竞品的测量结论。脚本演示是协议回放，不是两个模型在工作；未装可选 SDK 时跳过 MCP 测试，也不算 MCP 通过。
 
