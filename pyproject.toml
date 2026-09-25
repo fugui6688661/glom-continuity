@@ -21,14 +21,27 @@ mcp = ["mcp==2.2.0"]
 glom-continuity = "glom_continuity.continuity:main"
 glom-continuity-demo = "glom_continuity.smoke_demo:main"
 glom-continuity-mcp = "glom_continuity.mcp_server:main"
+glom-continuity-recovery = "glom_continuity.recovery:main"
+glom-continuity-harness = "glom_continuity.harness_install:main"
+glom-continuity-host = "glom_continuity.harness_host:main"
 
 [project.urls]
 Source = "https://github.com/fugui6688661/glom-continuity"
 
 [tool.setuptools]
-packages = ["glom_continuity"]
-package-dir = {glom_continuity = "scripts"}
+packages = ["glom_continuity", "glom_continuity.harness"]
+package-dir = {glom_continuity = "scripts", "glom_continuity.harness" = "adapters/harness"}
 include-package-data = false
+
+[tool.setuptools.package-data]
+"glom_continuity.harness" = [
+    "native-plugin.mjs",
+    "automatic-recovery.mjs",
+    "managed-host.mjs",
+    "client-notice/package.json",
+    "client-notice/index.mjs",
+    "client-notice/client.js",
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "glom_continuity.continuity.VERSION"}

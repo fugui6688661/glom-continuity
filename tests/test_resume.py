@@ -34,6 +34,16 @@ class Resume(unittest.TestCase):
         self.assertFalse(data['check']['semantic_completion_verified'])
         self.assertFalse((self.project / '.continuity').exists())
 
+    def test_bound_resume_rejects_another_project_before_disclosing_context(self):
+        saved = self.save()
+        result = self.cli('resume', '--expect-project-id', 'other-project', ok=False)
+        self.assertEqual(result['code'], 'PROJECT_MISMATCH')
+        self.assertIsNone(result['data'])
+        self.assertNotIn('Prepare a product video', json.dumps(result))
+        restored = self.cli('resume', '--expect-project-id', saved['project_id'])['data']
+        self.assertEqual(restored['project_id'], saved['project_id'])
+        self.assertEqual(self.cli('status')['data']['revision'], 1)
+
     def test_initialized_project_without_checkpoint_is_not_fake_memory(self):
         initial = self.cli('init', '--name', 'Selected project')['data']
         data = self.cli('resume')['data']

@@ -1,5 +1,47 @@
 # 跨平台 CI 草案与验证边界
 
+## 2026-09-25：Alpha.7 开发候选的两条检查线路
+
+本节是新代码的验证配置，不是新一次 GitHub Actions 成功记录。Alpha.6
+的旧结果不能替代本候选。源码版本已改为 `0.1.0-alpha.7`，尚未公开发行。
+
+- **Portable**：保留 Linux/Python 3.10、Linux/Python 3.12、Windows/Python
+  3.12、macOS/Python 3.12 四环境，执行显式清单内的 Python 测试、安装验证和
+  合成协议回放，不据此声称 Harness 宿主已通过。
+- **Required Harness / macOS**：固定 Node 26.6.0，使用独立 `npm ci` 安装
+  锁定的官方 DSH 0.1.5-rc.1 及配套依赖。禁用 npm 生命周期脚本。逐个运行六个
+  Node 测试文件和真实受管宿主 CLI 测试；缺 SDK、空套件、跳过、失败或超时
+  均拒绝通过。运行时仅允许本机回环和 Unix socket，无模型密钥或日常 profile。
+
+`ci/test-plan.json` 把每个 `tests/test_*.py` / `tests/test_*.mjs` 分配到一条
+线路。唯一排除项是被直接 Node 检查替代的 Python 包装测试，并记录了理由。
+新增文件漏分配、重复、缺失、符号链接、畸形清单会先失败，不靠人工记得改命令。
+
+Windows 只允许精确 ID 和理由对应的 POSIX 跳过：原有九项，加私有目录安装器
+十三项；并单独披露打包测试中未在 Windows 执行的宿主子检查。任何整轮零执行、
+未知跳过、MCP SDK 或构建依赖缺失仍失败。适用范围不是“全平台自动恢复”。
+
+本机预检已跑过 156 项 Portable、34 项 Node 和一个真实宿主复合检查，均无跳过；
+这是开发树 macOS 结果，不是固定发行包或四平台结果。另将宿主时限设为六秒，
+实际得到超时失败而非通过。超时先中断测试以执行收尾；必要时通过本次临时 home
+的身份校验控制口停止宿主。不能确认停止则保留控制文件并标失败，不按磁盘 PID
+杀进程。强制杀死测试后的所有异常时序仍未穷尽。
+
+本地复现（在源码目录，Python 已装 MCP 与构建工具）：
+
+```sh
+python scripts/ci_plan.py check
+python scripts/ci_plan.py portable
+npm ci --prefix ci/harness --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+python scripts/ci_harness.py --sdk-package ci/harness/node_modules/@deepseek-ai/dsh/package.json
+```
+
+后两步需要受支持的 Node 和 macOS；下载依赖会联网，测试不调用付费模型。
+`--host-timeout-seconds 6` 仅用于故障检查，出现失败是该检查的预期结果。
+所有 action 固定完整 SHA；新增 setup-node v4 对应
+`49933ea5288caeca8642d1e84afbd3f7d6820020`。仍无发布权限、不上传原始测试日志。
+下方旧 discovery 命令、跳过数量和旧源码结论均属于其注明日期，不是新版清单。
+
 ## 2026-09-15：当前开发提交已完成CI
 
 `fc34543450613cc43f0ff014789b6dbad0bddce9` 的四组CI已完成：Linux两组和macOS各69通过，Windows61通过、8项明确跳过、无失败。准确范围及后续说明变化见[实测记录](verification.md)。下方旧“待运行”保留其时点，不代表当前仍未运行；也不能拿这次结果认证以后更改的程序。

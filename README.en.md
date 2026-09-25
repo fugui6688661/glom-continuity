@@ -1,8 +1,14 @@
 # Recaloom
 
+Development version: `0.1.0-alpha.7`, not yet released. The new Harness recovery
+adapter, native commands and managed-host launcher are not in the Alpha.6 package below.
+See [tested scope and limits](docs/managed-host-validation.md). Automatic saving
+of ordinary conversations is not implemented. The install command below installs
+the published Alpha.6 only.
+
 For people who keep working on a project with an AI assistant across conversations. Save the goal, constraints, decisions and next step in the project, then read them back in a fresh session. Check changed references before continuing. One assistant is enough.
 
-Version v0.1.0-alpha.6 packages the existing dev4 features into a new preview, not a stable release. Use the named assets and checksums for the matching Release; check source, package and invoked-runtime versions separately.
+The current public download, v0.1.0-alpha.6, packages the existing dev4 features as a preview, not a stable release. New code will not replace its assets. Use the named assets and checksums for the matching Release; check source, package and invoked-runtime versions separately.
 
 [Install and first use](INSTALL.md) · [中文](README.md)
 

@@ -16,10 +16,10 @@ HAS_BUILDER = all(importlib.util.find_spec(name) for name in ('pip', 'setuptools
 
 @unittest.skipUnless(HAS_BUILDER, 'Install pip, setuptools>=77, wheel to verify installation')
 class Installation(unittest.TestCase):
-    def command(self, args, cwd, ok=True):
+    def command(self, args, cwd, ok=True, input=None):
         env = dict(os.environ, PYTHONUTF8='1', PIP_DISABLE_PIP_VERSION_CHECK='1')
         env.pop('PYTHONPATH', None)
-        result = subprocess.run(args, cwd=cwd, env=env, capture_output=True,
+        result = subprocess.run(args, cwd=cwd, env=env, input=input, capture_output=True,
                                 text=True, encoding='utf-8', timeout=60)
         self.assertEqual(result.returncode == 0, ok, result.stdout + result.stderr)
         return result
@@ -55,6 +55,16 @@ class Installation(unittest.TestCase):
             recovered = self.command([str(cli), '--project', str(project), 'resume'], base)
             self.assertEqual(json.loads(recovered.stdout)['data']['recovery_state'], 'no_checkpoint')
             suffix = '.exe' if os.name == 'nt' else ''
+            recovery = binaries / ('glom-continuity-recovery' + suffix)
+            bound = [str(recovery), '--project', str(project), '--project-id',
+                     json.loads(result.stdout)['data']['project_id'], '--session-id', 'install-session',
+                     '--generation', 'install-epoch']
+            event = dict(event='session_start', cwd=str(project.resolve()),
+                         session_id='install-session', generation='install-epoch', query='')
+            prepared = self.command(bound + ['prepare'], base, input=json.dumps(event))
+            receipt = json.loads(prepared.stdout)['data']['receipt']
+            delivered = self.command(bound + ['deliver'], base, input=json.dumps(receipt))
+            self.assertEqual(json.loads(delivered.stdout)['data']['delivery_state'], 'empty')
             demo = binaries / ('glom-continuity-demo' + suffix)
             replay = self.command([str(demo), '--output', str(base / 'demo')], base)
             self.assertEqual(json.loads(replay.stdout)['state'], 'protocol_demo_passed')
@@ -68,5 +78,6 @@ class Installation(unittest.TestCase):
             self.command([sys.executable, '-m', 'pip', '--python', str(python), 'uninstall',
                           '--yes', 'glom-continuity'], base)
             self.assertFalse(cli.exists())
+            self.assertFalse(recovery.exists())
             self.assertEqual(storage.read_bytes(), before)
             self.command([str(python), '-m', 'glom_continuity', '--version'], base, ok=False)

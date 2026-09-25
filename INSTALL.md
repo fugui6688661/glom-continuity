@@ -6,9 +6,9 @@ Requires Python 3.10+. Keep the tool, demos and working data separate. The base 
 
 ## 版本与发布状态 / Version and release status
 
-本版本 v0.1.0-alpha.6 是预览版，不是稳定版。它把现有 dev4 的项目记忆、`resume`、`doctor`、`return-work` 打包进新的 alpha。安装以[对应 Release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.6)的具名附件及配套清单为准，不把仓库文档或源码版本当作本机已更新的证明。
+本页下载的是已公开的 v0.1.0-alpha.6 预览版，不是稳定版；开发分支 `0.1.0-alpha.7` 尚未发行。Alpha.6 把现有 dev4 的项目记忆、`resume`、`doctor`、`return-work` 打包进 alpha。安装以[对应 Release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.1.0-alpha.6)的具名附件及配套清单为准，不把仓库文档或源码版本当作本机已更新的证明。
 
-Version v0.1.0-alpha.6 packages existing dev4 features into a preview, not a stable release. Use its named Release assets and checksums; updated source or documentation does not prove your installed copy was updated.
+This page downloads the published v0.1.0-alpha.6 preview, not a stable release. Development version `0.1.0-alpha.7` is not yet released. Use Alpha.6's named Release assets and checksums; updated source or documentation does not prove your installed copy was updated.
 
 已有项目不要重新 `init`；先看本页升级步骤。没有自动更新器，文档更新不会升级已安装程序。本页不提供 PyPI、Homebrew 或应用商店安装入口，不从同名陌生软件安装。
 
