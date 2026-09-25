@@ -61,6 +61,26 @@ class ContinuityCLI(unittest.TestCase):
         self.assertEqual(context['instruction_authority'], 'none')
         self.assertFalse(context['check']['semantic_completion_verified'])
 
+    def test_storage_recovery_never_initializes_or_replaces_unknown_data(self):
+        self.assertEqual(self.run_cli('recover-storage', ok=False)['code'], 'NOT_INITIALIZED')
+        self.assertFalse((self.project / '.continuity').exists())
+        self.run_cli('init', '--name', 'Synthetic healthy recovery')
+        self.run_cli('checkpoint', '--from-file', str(self.draft()), '--expect-revision', '0')
+        before = self.run_cli('status')['data']
+        self.assertEqual(self.run_cli('recover-storage')['data'], before)
+        self.assertEqual(self.run_cli('recover-storage')['data'], before)
+        self.assertEqual(self.run_cli('status')['data'], before)
+        foreign = self.root / 'unrecognized'
+        storage = foreign / '.continuity'
+        storage.mkdir(parents=True)
+        raw = b'Synthetic unknown storage. Do not replace.'
+        database = storage / 'state.sqlite3'
+        database.write_bytes(raw)
+        refused = self.run_cli('recover-storage', ok=False, project=foreign)
+        self.assertEqual(refused['code'], 'IO_ERROR')
+        self.assertEqual(database.read_bytes(), raw)
+        self.assertEqual(list(storage.iterdir()), [database])
+
     def test_machine_output_is_utf8_even_with_a_legacy_pipe_encoding(self):
         for encoding in ('ascii', 'cp1252', 'gbk'):
             with self.subTest(encoding=encoding):

@@ -69,7 +69,19 @@ export async function apply(ctx, config) {
         // The response acknowledges quiescence, not process exit. The CLI also
         // waits for the inherited ownership lock to be released by all holders.
         reply(socket, { ok: true, state: 'stopping', recovery_attached: Boolean(lifecycle),
-          persisted_pause: Boolean(lifecycle) }, () => ctx.appExit(0));
+          persisted_pause: Boolean(lifecycle) }, error => {
+            if (stopping !== attempt) return;
+            // Transport completion is asynchronous: settings can invalidate the
+            // acknowledged receipt before the actual exit request is made.
+            try {
+              if (error || (lifecycle && !lifecycle.status().readyForRemoval))
+                throw new Error('Removal readiness changed');
+            } catch {
+              stopping = undefined;
+              return;
+            }
+            ctx.appExit(0);
+          });
       }).catch(() => {
         if (stopping === attempt) stopping = undefined;
         reply(socket, { ok: false, code: 'PAUSE_NOT_SAVED' });

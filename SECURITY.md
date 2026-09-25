@@ -59,6 +59,7 @@ Windows host controller is supplied. See [managed-home boundaries](adapters/harn
 
 ## Guardrails and limits
 
+- Alpha.7 read commands and automatic recovery refuse storage that requires a write before it can be inspected. The CLI-only `recover-storage` explicitly permits SQLite's native rollback, then validates existing structure and checkpoint integrity. It is not exposed through MCP, does not initialize or migrate storage, and is not an arbitrary corruption-repair tool. Stop all users and preserve a whole-directory backup before authorizing it; never delete journal files to make a read pass. A successful return describes the readable state, not proof that rollback was needed or business work was completed.
 - Project-local SQLite transactions plus expected revision prevent two cooperative writers from silently replacing the same checkpoint. They do not lock ordinary project files or implement exactly-once external side effects.
 - Static evidence symlinks, traversal, private path names and oversize references are rejected. This is **not** an OS sandbox: malicious concurrent file/directory replacement, hard links and filesystem permission attacks are outside the guarantee.
 - Fingerprints are observations at check time. A file may change after a check; an executor must recheck immediately before its own use and enforce its own permissions.

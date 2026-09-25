@@ -262,7 +262,7 @@ def validate_storage(db):
     if len(projects) != 1:
         raise Fault('UNRECOGNIZED_STORAGE', 'Project identity is missing or ambiguous; preserve storage for review')
     if projects[0]['schema_version'] != 1:
-        raise Fault('UNSUPPORTED_SCHEMA', 'Unknown project schema; no changes made')
+        raise Fault('UNSUPPORTED_SCHEMA', 'Unknown project schema; no schema migration or checkpoint was attempted')
 
 
 @contextmanager
@@ -298,6 +298,19 @@ def database(root, initialize=False, readonly=False):
         else:
             validate_storage(db)
         yield db
+    except sqlite3.OperationalError as exc:
+        # SQLite can require writes even for SELECT after an interrupted commit.
+        # Python 3.10 lacks sqlite_errorcode; SQLite's fixed English error text
+        # supplies the same bounded classification there, never a writable retry.
+        code = getattr(exc, 'sqlite_errorcode', None)
+        if readonly and ((isinstance(code, int) and code & 255 == 8) or
+                         str(exc) == 'attempt to write a readonly database'):
+            raise Fault('STORAGE_RECOVERY_REQUIRED',
+                        'Read-only inspection requires storage recovery; no context returned. '
+                        'Stop project users and back up the complete .continuity directory and references. '
+                        'Then explicitly authorize recover-storage for this exact project. '
+                        'Do not delete journals, initialize again or retry automatically with write access.') from None
+        raise
     finally:
         db.close()
 
@@ -406,6 +419,7 @@ def parser():
     init = sub.add_parser('init')
     init.add_argument('--name', required=True)
     sub.add_parser('status')
+    sub.add_parser('recover-storage', help='Explicitly permit SQLite crash rollback and inspect existing state; no initialization or migration')
     sub.add_parser('check')
     context = sub.add_parser('context')
     context.add_argument('--max-chars', type=int, default=6000)
@@ -497,7 +511,9 @@ def execute(args):
                 if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
                     raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
                 return data
-        if args.command == 'status':
+        if args.command in ('status', 'recover-storage'):
+            # A recovery request opens writable only to let SQLite complete its
+            # own crash protocol. It creates no checkpoint or application table.
             return state(db)
         if args.command == 'check':
             return check_recorded_references(root, db, state(db))

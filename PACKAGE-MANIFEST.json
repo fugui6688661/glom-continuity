@@ -39,13 +39,13 @@
     },
     {
       "path": "IMPLEMENTATION.md",
-      "bytes": 5391,
-      "sha256": "fead2e0818817d7fb070c3125f86e0d65b1f69f0c7aba3d81f265a28636355f9"
+      "bytes": 5572,
+      "sha256": "344357d92e7048bb56020d1d7966df4fbe5fc158263380d29117d2cf342eedde"
     },
     {
       "path": "INSTALL.md",
-      "bytes": 22913,
-      "sha256": "25f7c1a79fa5fe4bc4d869bad109231fa9652adeed4491bf10a79d74c7edf91f"
+      "bytes": 24832,
+      "sha256": "c27423b3745eb1c0bc5ec490e584e6d9e41712dc6dabd436fe75f5f67f646b3c"
     },
     {
       "path": "LICENSE",
@@ -69,8 +69,8 @@
     },
     {
       "path": "SECURITY.md",
-      "bytes": 7375,
-      "sha256": "2d555bcfabb8a88c1b82d7e3d74242270b26e7a2fdd78efedbbb6d3ce15cae25"
+      "bytes": 7983,
+      "sha256": "e413ecd19e42036c4063e189466a8348afe1980377bf99fd9e4b9c7fc68ac1e3"
     },
     {
       "path": "adapters/README.md",
@@ -129,8 +129,8 @@
     },
     {
       "path": "adapters/harness/managed-host.mjs",
-      "bytes": 4205,
-      "sha256": "996300851f0e8d055ec60ffc6b9a2f91b2fc94ce16f1f3536b922a953c7cb39b"
+      "bytes": 4691,
+      "sha256": "6bc0f5e2fa4585c3557fac129e49fa28339966cd79adce7125a9ecbcae55fc3c"
     },
     {
       "path": "adapters/harness/native-plugin.md",
@@ -209,8 +209,8 @@
     },
     {
       "path": "docs/recovery-boundary.md",
-      "bytes": 7006,
-      "sha256": "65abb5c0cafe862ecf72308e6082eb67d33a18e34196870fa8a19ad6e4f79cd9"
+      "bytes": 7334,
+      "sha256": "c07791d9f2e8376d80f45cbe7edb190288d086499d2b5c5b5b9c825be3f8a789"
     },
     {
       "path": "docs/result-return.md",
@@ -269,8 +269,8 @@
     },
     {
       "path": "scripts/continuity.py",
-      "bytes": 40011,
-      "sha256": "965df4db134e6a2bc6b39ca41e640606b9457835b32f34aab892a74859fd604e"
+      "bytes": 41346,
+      "sha256": "ba00957e70fba45ae893158a3fee0a7e731d0bd93b2b0f8cc61c26282e0d1baa"
     },
     {
       "path": "scripts/harness_host.py",
@@ -324,8 +324,8 @@
     },
     {
       "path": "tests/test_cli.py",
-      "bytes": 11191,
-      "sha256": "86b120047a8d23a090fa845956601aef2422114fd2d55a66d213767ee070a3dc"
+      "bytes": 12366,
+      "sha256": "89f67a7e1e47ec99ac125726e2defa0bf117ebd1222074c5432502f23b2ad563"
     },
     {
       "path": "tests/test_delivery.py",
@@ -394,8 +394,8 @@
     },
     {
       "path": "tests/test_managed_control.mjs",
-      "bytes": 2873,
-      "sha256": "f67d7835063eb948f9b944fece91ba697915d94214d6b9f58804f24287a61e60"
+      "bytes": 5884,
+      "sha256": "ff3884538486fc1662009cb9d64a6dff9f26f70431867fff610dc3c72a28edb9"
     },
     {
       "path": "tests/test_managed_host.py",
@@ -419,8 +419,8 @@
     },
     {
       "path": "tests/test_recovery_independent.py",
-      "bytes": 27214,
-      "sha256": "a8c63c87fc4f5496530a7ee586079bac2aadac88ea1afbd3dcf7d0ed01f33fb6"
+      "bytes": 32396,
+      "sha256": "369ad1c7c6bd54b4b5f69578ff9a9b09bb130a7af519c9dc9803324ddec3a529"
     },
     {
       "path": "tests/test_resume.py",

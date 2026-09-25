@@ -133,6 +133,37 @@ Doctor identifies the invoked runtime and recognized storage. Successful diagnos
 
 Resume is read-only. Its states distinguish missing storage, no checkpoint, required review, unreferenced planning and recovered records. None certifies task completion; unknown states and corrupt storage require review.
 
+<a id="storage-recovery-after-a-crash"></a>
+
+### 异常退出后需要恢复存储 / Storage recovery after a crash
+
+Alpha.7 开发候选严格区分只读恢复和数据库修复。`STORAGE_RECOVERY_REQUIRED`
+表示当前只读连接无法继续，不能把它当成空项目重新 `init`，也不能删除日志文件。
+SQLite 在异常写入后可能需要先回滚尚未提交的事务；这一步本身需要写权限。
+自动恢复和 MCP 只读工具不会代你执行，也不会返回旧缓存冒充已恢复。
+
+先停止该项目的所有读写进程，把整个 `.continuity/`（包括存在的 `-journal`、
+`-wal`、`-shm`）和引用文件一起保存在新备份位置。不要拷贝后只保留数据库主文件。
+核对准确的项目路径，再明确执行：
+
+```text
+<cli> --project <absolute-project> recover-storage
+<cli> --project <absolute-project> resume --max-chars 10000
+```
+
+`recover-storage` 是独立 CLI 写操作：允许 SQLite 原生恢复，随后核对现有结构和
+检查点。它不新建项目、不迁移 schema、不添加检查点、不修复任意损坏，也不代表
+业务完成。成功结果只返回实际可读的项目状态；若原本正常，不声称发生过回滚。
+失败则保留备份与原件继续排查；不要循环修复、重建或删库。MCP 不提供这个命令。
+
+In the Alpha.7 candidate, `STORAGE_RECOVERY_REQUIRED` preserves the strictly
+read-only boundary. After stopping all users and backing up the whole storage
+directory and referenced files to a new location, explicitly authorize the
+CLI-only `recover-storage` for the exact project. It permits native SQLite
+recovery and validates existing storage, without initialization, migration or a
+new checkpoint. It is not arbitrary corruption repair or a completion verdict.
+Never remove a hot journal as a workaround. See [SQLite crash recovery](https://sqlite.org/lockingv3.html).
+
 首次保存只有在确实未初始化且获准时，才运行 `<cli> --project <absolute-project> init --name "My project"`。已有项目不要再次 init。初始化不会保存目标；在项目内另写六字段 `checkpoint.json`：
 
 ```json

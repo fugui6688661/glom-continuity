@@ -46,6 +46,7 @@ Run action `deliver`, supplying **only** the receipt on stdin and freshly sample
 - Expired or retired habits are not recovered from an old prepared result.
 - Malformed JSON, duplicate fields or oversized input fail with no project data.
 - A short output budget returns `BUDGET_TOO_SMALL`, with `data: null`; it never chops off constraints. Failure diagnostics have a fixed small shape and may exceed an impossibly small requested budget.
+- `STORAGE_RECOVERY_REQUIRED` withholds context when reading would require a database write, such as hot-journal rollback. Preserve the crash files and follow the explicitly authorized [storage recovery procedure](../INSTALL.md#storage-recovery-after-a-crash); never retry automatically with write access or inject cached text.
 
 Successful delivery returns `data.target`, `data.context` and `delivery_state`. `empty` means the bound project has no checkpoint; `ready` means context can be reviewed, **not** that the work is complete or its next action is currently authorized. `context.check.semantic_completion_verified` remains false. Unreferenced planning stays explicitly `no_references` / `recorded_unverified`.
 

@@ -61,3 +61,67 @@ test('an invalidated removal receipt permits a fresh explicit stop attempt', asy
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('a pause invalidated after acknowledgement does not authorize deferred host exit', async t => {
+  const root = mkdtempSync('/tmp/recaloom-control-');
+  const fd = openSync(join(root, 'lock'), 'wx', 0o600);
+  const previous = [process.env.RECALOOM_MANAGED_RUN_ID, process.env.RECALOOM_MANAGED_LOCK_FD];
+  process.env.RECALOOM_MANAGED_RUN_ID = 'deferred-run';
+  process.env.RECALOOM_MANAGED_LOCK_FD = String(fd);
+  let onReady;
+  let ready = false;
+  let exits = 0;
+  let deferred;
+  const lifecycle = {
+    async prepareRemoval() { ready = true; },
+    status: () => ({ state: ready ? 'quiesced' : 'quiescing', readyForRemoval: ready }),
+  };
+  const ctx = {
+    appReady: { onReady(fn) { onReady = fn; } }, appExit() { ++exits; },
+    webServer: { port: 12345 }, settings: { get: () => ({ enabled: false }) },
+    clientModules: { graph: () => ({ entries: [] }) }, get: () => lifecycle,
+  };
+  // Defer only the transport completion of this synthetic host's first stop.
+  // The request and acknowledgement still use the real private Unix socket.
+  const originalEnd = net.Socket.prototype.end;
+  let hold = true;
+  const transport = t.mock.method(net.Socket.prototype, 'end', function (...args) {
+    if (hold && typeof args[0] === 'string' && args[0].includes('"home_id":"deferred-home"') &&
+        args[0].includes('"state":"stopping"') && typeof args.at(-1) === 'function') {
+      hold = false;
+      deferred = args.pop();
+    }
+    return originalEnd.apply(this, args);
+  });
+  let dispose;
+  try {
+    const path = join(root, 'control.sock');
+    dispose = await apply(ctx, { homeId: 'deferred-home', socket: path, attached: true });
+    onReady();
+    const stop = () => new Promise((resolve, reject) => {
+      const client = net.createConnection(path);
+      let buffer = '';
+      client.setTimeout(2000, () => client.destroy(new Error('test socket timeout')));
+      client.on('error', reject);
+      client.on('connect', () => client.write(JSON.stringify({ home_id: 'deferred-home', run_id: 'deferred-run', action: 'stop' }) + '\n'));
+      client.on('data', bytes => { buffer += bytes; });
+      client.on('end', () => resolve(JSON.parse(buffer)));
+    });
+    assert.equal((await stop()).ok, true);
+    assert.equal(typeof deferred, 'function', 'The exit transport callback must actually be delayed');
+    assert.equal(exits, 0);
+    ready = false; // A later public Settings revision invalidates the pause receipt.
+    deferred();
+    assert.equal(exits, 0, 'A stale acknowledgement must not exit the host');
+    assert.equal((await stop()).ok, true, 'An explicit retry must prepare and persist a fresh pause');
+    assert.equal(exits, 1);
+  } finally {
+    transport.mock.restore();
+    await dispose?.();
+    closeSync(fd);
+    ['RECALOOM_MANAGED_RUN_ID', 'RECALOOM_MANAGED_LOCK_FD'].forEach((key, index) => {
+      if (previous[index] === undefined) delete process.env[key]; else process.env[key] = previous[index];
+    });
+    rmSync(root, { recursive: true, force: true });
+  }
+});
