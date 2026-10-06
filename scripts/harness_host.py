@@ -21,6 +21,59 @@ else:
 core = install.core
 
 
+class DiagnosticFault(core.Fault):
+    """A fixed reason plus launcher-owned observations, never child output."""
+    def __init__(self, code, message, diagnostic):
+        super().__init__(code, message)
+        self.diagnostic = diagnostic
+
+
+def record_diagnostic(root, metadata, run_id, stage, exit_code=None):
+    value = {'format': 'recaloom-host-diagnostic-v1', 'home_id': metadata['home_id'],
+             'run_id': run_id, 'stage': stage,
+             'exit_code': exit_code if exit_code is None or exit_code >= 0 else None,
+             'termination_signal': -exit_code if exit_code is not None and exit_code < 0 else None,
+             'observed_at_ns': time.time_ns(), 'output_capture': 'not_collected'}
+    target = root / 'diagnostic.json'
+    if os.path.lexists(target):
+        install.private_file(target)
+    temporary = root / ('diagnostic-' + uuid.uuid4().hex + '.json')
+    install.write_new(temporary, install.json_bytes(value))
+    os.replace(temporary, target)
+    return value
+
+
+def read_diagnostic(root, metadata):
+    """Read only the current run's bounded whitelist, not arbitrary saved text."""
+    try:
+        install.private_file(root / 'run.json')
+        run = install.read_json(root / 'run.json')
+        install.private_file(root / 'diagnostic.json')
+        value = install.read_json(root / 'diagnostic.json')
+        fields = {'format', 'home_id', 'run_id', 'stage', 'exit_code', 'termination_signal', 'observed_at_ns', 'output_capture'}
+        outcome_valid = (isinstance(value, dict) and
+                         ((type(value.get('exit_code')) is int and 0 <= value['exit_code'] <= 255
+                           and value.get('termination_signal') is None)
+                          or (value.get('exit_code') is None and type(value.get('termination_signal')) is int
+                              and 1 <= value['termination_signal'] <= 255)))
+        if (not isinstance(value, dict) or set(value) != fields
+                or value['format'] != 'recaloom-host-diagnostic-v1'
+                or value['output_capture'] != 'not_collected'
+                or value['home_id'] != metadata['home_id']
+                or run.get('home_id') != metadata['home_id']
+                or value['run_id'] != run.get('run_id')
+                or str(uuid.UUID(value['run_id'])) != value['run_id']
+                or value['stage'] not in ('launch_requested', 'process_spawned', 'process_exited', 'spawn_failed')
+                or (value['stage'] != 'process_exited' and
+                    (value['exit_code'] is not None or value['termination_signal'] is not None))
+                or (value['stage'] == 'process_exited' and not outcome_valid)
+                or type(value['observed_at_ns']) is not int or value['observed_at_ns'] <= 0):
+            return {'availability': 'unavailable'}
+        return value
+    except (OSError, core.Fault, ValueError, TypeError, KeyError, AttributeError):
+        return {'availability': 'unavailable'}
+
+
 def create(args):
     checked = install.inspect_bundle(args.bundle)
     home = install.new_target(args.home)
@@ -119,7 +172,14 @@ def lock(root):
 
 def control(root, metadata, action):
     install.private_file(root / 'run.json')
-    run = install.read_json(root / 'run.json')
+    try:
+        run = install.read_json(root / 'run.json')
+        if (not isinstance(run, dict) or run.get('home_id') != metadata['home_id']
+                or not isinstance(run.get('run_id'), str)
+                or str(uuid.UUID(run['run_id'])) != run['run_id']):
+            raise ValueError('Invalid run identity')
+    except (core.Fault, ValueError):
+        raise core.Fault('CONTROL_INVALID', 'Current run identity is unavailable; no control request was sent') from None
     info = (root / 'control.sock').lstat()
     if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
         raise core.Fault('UNSAFE_SOCKET', 'Expected the private local control socket')
@@ -134,11 +194,23 @@ def control(root, metadata, action):
             if not part or len(response) + len(part) > 8192:
                 raise core.Fault('CONTROL_RESPONSE_INVALID', 'Host response was missing or oversized')
             response += part
-    value = core.strict_json(response.decode('utf-8'))
+    try:
+        value = core.strict_json(response.decode('utf-8'))
+    except (UnicodeError, core.Fault):
+        raise core.Fault('CONTROL_RESPONSE_INVALID', 'Host response was not a valid UTF-8 JSON object') from None
+    if not isinstance(value, dict):
+        raise core.Fault('CONTROL_RESPONSE_INVALID', 'Host response was not a JSON object')
     if value.get('home_id') != request['home_id'] or value.get('run_id') != request['run_id']:
         raise core.Fault('HOST_IDENTITY_MISMATCH', 'The control response is not from this run')
+    if type(value.get('ok')) is not bool:
+        raise core.Fault('CONTROL_RESPONSE_INVALID', 'Host response had an invalid confirmation field')
     if value.get('ok') is not True:
         raise core.Fault('HOST_CONTROL_REFUSED', 'Host did not confirm this control operation')
+    states = ('starting', 'running', 'stopping') if action == 'status' else ('stopping',)
+    if (value.get('state') not in states
+            or any(field in value and type(value[field]) is not bool
+                   for field in ('persisted_pause', 'recovery_attached'))):
+        raise core.Fault('CONTROL_RESPONSE_INVALID', 'Host response had invalid lifecycle fields')
     return value
 
 
@@ -147,32 +219,56 @@ def status(args):
     fd = lock(root)
     if fd is not None:
         os.close(fd)
-        return {'state': 'stopped', 'home_id': metadata['home_id']}
+        diagnostic = read_diagnostic(root, metadata)
+        next_action = ('Check the selected Node executable and its permissions before another run.'
+                       if diagnostic.get('stage') == 'spawn_failed' else
+                       'Inspect the last run before starting again. Child error output was not collected; an exit code does not establish the cause or successful readiness.')
+        return {'state': 'stopped', 'home_id': metadata['home_id'],
+                'diagnostic': diagnostic, 'next_action': next_action}
     try:
-        return control(root, metadata, 'status')
-    except (OSError, core.Fault):
+        value = control(root, metadata, 'status')
+        if value['state'] == 'starting':
+            diagnostic = read_diagnostic(root, metadata)
+            if diagnostic.get('run_id') != value['run_id']:
+                diagnostic = {'availability': 'unavailable'}
+            value.update(control_verified=True, diagnostic=diagnostic,
+                         next_action='Control is responding, but startup is not complete. Check status for this same home again or inspect its owning terminal. Child error output was not collected; do not start a replacement or remove its lock.')
+        return value
+    except (OSError, core.Fault) as error:
+        known = {'HOST_IDENTITY_MISMATCH', 'HOST_CONTROL_REFUSED', 'CONTROL_RESPONSE_INVALID', 'UNSAFE_SOCKET'}
+        reason = (error.code if isinstance(error, core.Fault) and error.code in known else
+                  'CONTROL_INVALID' if isinstance(error, core.Fault) else 'CONTROL_UNREACHABLE')
         return {'state': 'starting_or_unresponsive', 'home_id': metadata['home_id'],
-                'note': 'Ownership lock is held. Do not start a replacement based only on this observation.'}
+                'process_state': 'unknown', 'control_verified': False, 'control_reason': reason,
+                'diagnostic': read_diagnostic(root, metadata),
+                'note': 'Ownership lock is held. A prior spawn observation does not establish current child liveness. Child error output was not collected.',
+                'next_action': 'Check status for this same home again or inspect its owning terminal. Do not start a replacement, remove its lock or force-stop an unverified process.'}
 
 
 def stop(args):
     root, metadata = inspect(args.home)
-    fd = lock(root)
-    if fd is not None:
-        os.close(fd)
-        return {'state': 'stopped', 'home_id': metadata['home_id']}
-    receipt = control(root, metadata, 'stop')
-    if receipt.get('persisted_pause') is not True and receipt.get('recovery_attached') is not False:
-        raise core.Fault('PAUSE_NOT_SAVED', 'Do not remove this host; persistent pause was not confirmed')
-    deadline = time.monotonic() + 15
-    while time.monotonic() < deadline:
+    try:
         fd = lock(root)
         if fd is not None:
             os.close(fd)
-            return {'state': 'stopped', 'home_id': metadata['home_id'],
-                    'persisted_pause': receipt.get('persisted_pause') is True}
-        time.sleep(.05)
-    raise core.Fault('STOP_PENDING', 'Host still owns its lock. Do not remove files or start a replacement')
+            return {'state': 'stopped', 'home_id': metadata['home_id']}
+        receipt = control(root, metadata, 'stop')
+        if receipt.get('persisted_pause') is not True and receipt.get('recovery_attached') is not False:
+            raise core.Fault('PAUSE_NOT_SAVED', 'Do not remove this host; persistent pause was not confirmed')
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            fd = lock(root)
+            if fd is not None:
+                os.close(fd)
+                return {'state': 'stopped', 'home_id': metadata['home_id'],
+                        'persisted_pause': receipt.get('persisted_pause') is True}
+            time.sleep(.05)
+        raise core.Fault('STOP_PENDING', 'Host still owns its lock. Do not remove files or start a replacement')
+    except (OSError, core.Fault) as error:
+        code = error.code if isinstance(error, core.Fault) else 'HOST_IO_ERROR'
+        raise DiagnosticFault(code,
+                              'Safe stop was not confirmed. Inspect status for this same home and run; no force-stop, replacement or lock removal was attempted.',
+                              read_diagnostic(root, metadata)) from None
 
 
 def run(args):
@@ -224,11 +320,21 @@ def run(args):
             stop_requested = True
         previous_interrupt = signal.signal(signal.SIGINT, request_stop)
         try:
+            # Confirm private diagnostics can be written before external execution.
+            # This is an observation, not a readiness or process-ownership authority.
+            record_diagnostic(root, metadata, run_id, 'launch_requested')
             # Terminal SIGINT must reach the owner, never bypass the persistent
             # pause barrier by triggering the SDK's direct signal disposal.
-            child = subprocess.Popen(command, cwd=root, env=env, stdin=subprocess.DEVNULL,
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                     pass_fds=(fd,), start_new_session=True)
+            try:
+                child = subprocess.Popen(command, cwd=root, env=env, stdin=subprocess.DEVNULL,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                         pass_fds=(fd,), start_new_session=True)
+            except OSError:
+                diagnostic = record_diagnostic(root, metadata, run_id, 'spawn_failed')
+                raise DiagnosticFault('HOST_START_FAILED',
+                                      'No child process handle was obtained. Check the selected Node executable and its permissions; no child exit code is available.',
+                                      diagnostic) from None
+            record_diagnostic(root, metadata, run_id, 'process_spawned')
             deadline = None
             acknowledged = False
             while child.poll() is None:
@@ -250,10 +356,20 @@ def run(args):
                             deadline = time.monotonic() + 15
                 time.sleep(.05)
             code = child.returncode
+            diagnostic = record_diagnostic(root, metadata, run_id, 'process_exited', code)
+        except (OSError, core.Fault) as error:
+            if stop_requested and not isinstance(error, DiagnosticFault):
+                code = error.code if isinstance(error, core.Fault) else 'HOST_IO_ERROR'
+                raise DiagnosticFault(code,
+                                      'Interrupted safe stop was not confirmed. Inspect status for this same home and retry stop; no force-stop, replacement or lock removal was attempted.',
+                                      read_diagnostic(root, metadata)) from None
+            raise
         finally:
             signal.signal(signal.SIGINT, previous_interrupt)
         if code:
-            raise core.Fault('HOST_EXIT_FAILED', 'Official host did not exit cleanly; no successful lifecycle claim')
+            raise DiagnosticFault('HOST_EXIT_FAILED',
+                                  'Host process exited unsuccessfully. Check status for the observed exit code or termination signal. Child error output was not collected; cause is unknown.',
+                                  diagnostic)
         return {'state': 'exited', 'exit_code': code, 'home_id': metadata['home_id']}
     finally:
         os.close(fd)
@@ -276,7 +392,8 @@ def main():
         print(core.wire({'ok': True, 'code': 'OK', 'data': result}))
         return 0
     except core.Fault as error:
-        print(core.wire({'ok': False, 'code': error.code, 'data': None, 'error': error.message}))
+        data = {'diagnostic': error.diagnostic} if isinstance(error, DiagnosticFault) else None
+        print(core.wire({'ok': False, 'code': error.code, 'data': data, 'error': error.message}))
         return 2
     except (OSError, ValueError, TypeError, KeyError, RuntimeError, subprocess.SubprocessError):
         print(core.wire({'ok': False, 'code': 'HOST_IO_ERROR', 'data': None,

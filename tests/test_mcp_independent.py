@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "scripts/continuity.py"
 SERVER = ROOT / "scripts/mcp_server.py"
 SOURCE_HASHES = {}
-READ_TOOLS = {"continuity_status", "continuity_check", "continuity_context", "continuity_receipt", "continuity_resume", "continuity_doctor"}
+READ_TOOLS = {"continuity_status", "continuity_check", "continuity_context", "continuity_receipt", "continuity_resume", "continuity_doctor", "continuity_review"}
 WRITE_TOOLS = {"continuity_init", "continuity_checkpoint", "continuity_handoff", "continuity_accept", "continuity_export", "continuity_return_work"}
 
 

@@ -35,7 +35,7 @@ Give an authorized local assistant the absolute project path, the matching Skill
 
 > Save this project's goal, constraints, unresolved questions and next step. In a fresh session, recover it read-only and tell me whether the referenced files changed.
 
-Installation does not automatically load the project in every new conversation. Wheel users need the matching Skill separately; do not assume the environment contains `skills/` or `scripts/`. Use the [first-use checklist](docs/first-use.md#english-checklist) to save a synthetic project and recover it in a new session.
+Installation does not automatically load the project in every new conversation. Public Alpha.7 wheels still need the matching Skill separately. Local XS candidates bundle a guide discoverable through doctor's `data.usage`; public assets have not been updated. Use the [first-use checklist](docs/first-use.md#english-checklist) to save a synthetic project and recover it in a new session.
 
 Existing project-memory and handoff capabilities remain available:
 
@@ -73,7 +73,7 @@ The base CLI has no third-party runtime dependencies, makes no model calls or pr
 
 State lives in the selected project's `.continuity/state.sqlite3`; source files stay in place. Drafts, databases and exports may contain private text. Do not publish them without review. Stop all writers before backing up `.continuity/` and referenced files together. Do not cloud-sync a live SQLite database with concurrent writers.
 
-To stop using Recaloom, remove only the Skill/client entries you added and close the associated MCP child process. Uninstall the wheel from its dedicated virtual environment or move the portable tool. Keep project memory if you want it. No autostart daemon is installed. [INSTALL](INSTALL.md) covers removal, backup and errors; [Security](SECURITY.md) describes the trust boundary.
+For XS candidates that provide `entry` commands and have a configured project entry, first review, pause and verify it through [INSTALL](INSTALL.md#preserve-data-removal), then remove only your Recaloom Skill/client connections, close the associated MCP child process and uninstall from the dedicated environment or move the portable tool. Preserve personal rules and project memory; do not manually cut out the managed block. Public Alpha.7 has no such `entry` commands: use its existing connection-removal route. No autostart daemon is installed; [Security](SECURITY.md) describes the trust boundary.
 
 ## Existing users and tested limits
 

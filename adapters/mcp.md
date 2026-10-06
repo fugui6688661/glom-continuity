@@ -69,6 +69,8 @@ dev3 可优先使用 `continuity_resume(query="视频", max_chars=12000)`：在�
 
 `continuity_checkpoint.from_file` 必须指向普通 JSON 文件。相对路径始终从**绑定的项目根**解析，与客户端在哪里启动服务器无关；也接受该项目内的绝对路径。CLI仍按通常命令行规则解析相对草稿路径，跨入口时推荐明确的绝对路径。命名管道等非普通草稿会被拒绝；不会等待它们产生输入。未知额外参数当前可能被SDK忽略，不能用`project`等额外字段改变绑定项目；只发送工具schema公布的字段。
 
+若实际发现的 `continuity_checkpoint` schema 含 `expect_project_id`，保存时一并传入此前审阅确认的项目 ID。项目不符返回 `PROJECT_MISMATCH`；正确项目仍须通过 `expect_revision`，防止覆盖并发进度。不要把报错后的新 ID 自动当成同意换项目。该可选字段只防错投，不赋予写权限，不自动保存，也不锁住整个文件系统。旧发行件未公布此字段时不要发送：SDK 可能忽略未知参数，不能靠“调用成功”推断保护已存在。
+
 English: `from_file` is a regular JSON draft inside the bound project. Relative MCP paths start at that project's root, never the server's launch directory. Absolute paths must still be inside the project. The CLI retains ordinary cwd-relative argument semantics. Unknown extra arguments may be ignored by the SDK; they cannot change project binding.
 
 读取结果要同时检查`isError`和完整`structuredContent`中的`ok/code/data`。业务错误保留CLI错误码，SDK对未知工具和无效结构还可能返回协议或工具错误，不得假定所有错误都有`structuredContent`。

@@ -42,10 +42,11 @@ class AutomaticRecovery(unittest.TestCase):
                        generation='generation-1', query=''), **overrides}
 
     def recovery(self, command, payload, *, ok=True, session='session-A', generation='generation-1',
-                 project_id=None, budget=10000, input_encoding='utf-8'):
+                 project_id=None, budget=10000, input_encoding='utf-8', summary=False):
         result = subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/recovery.py'),
                                  '--project', str(self.project), '--project-id', project_id or self.identity,
-                                 '--session-id', session, '--generation', generation, '--max-chars', str(budget), command],
+                                 '--session-id', session, '--generation', generation, '--max-chars', str(budget),
+                                 *(['--memory-summary'] if summary else []), command],
                                 input=json.dumps(payload).encode(input_encoding), capture_output=True, timeout=10)
         self.assertEqual(result.returncode, 0 if ok else 2, result.stdout + result.stderr)
         self.assertTrue(result.stdout, result.stderr)
@@ -174,6 +175,42 @@ class AutomaticRecovery(unittest.TestCase):
                     rejected = self.recovery(command, payload, ok=False, input_encoding=encoding)
                     self.assertEqual(rejected['code'], 'INVALID_INPUT')
                     self.assertIsNone(rejected['data'])
+
+    def test_compact_recovery_carries_all_active_memory_and_binds_its_mode(self):
+        for group in range(4):
+            notes = [dict(id=f'note-{group}-{index}', kind='preference', title='Saved habit',
+                          body='Use original product labels' if group == 0 else 'Keep the human review step',
+                          when=['*'], status='active' if index == 0 and group < 2 else 'retired',
+                          source='Synthetic explicit review', expires_at=None) for index in range(32)]
+            name = f'memory-{group}.json'
+            (self.project / name).write_text(json.dumps({'format': 'continuity-memory-v1', 'items': notes}), encoding='utf-8')
+            self.draft['evidence'].append({'path': name, 'role': 'memory'})
+        self.save(1)
+        offer = self.cli('handoff', '--recipient', 'reviewer', '--expect-revision', '2')['data']['handoff_id']
+        full_receipt = self.recovery('prepare', self.event(), budget=40000)['data']['receipt']
+        full = self.recovery('deliver', full_receipt, budget=40000)['data']['context']
+        self.assertEqual(len(full['memory']['selected']), 2)
+        self.assertEqual(self.recovery('prepare', self.event(), budget=6000, ok=False)['code'], 'BUDGET_TOO_SMALL')
+        compact = self.recovery('prepare', self.event(), budget=6000, summary=True)['data']['receipt']
+        self.assertTrue(compact['memory_summary'])
+        self.assertNotIn('original product labels', json.dumps(compact))
+        restored = self.recovery('deliver', compact, budget=6000, summary=True)['data']['context']
+        self.assertEqual(restored['memory']['selected'], full['memory']['selected'])
+        self.assertEqual(restored['memory']['omitted_counts'], {'retired': 126})
+        self.assertNotIn('omitted', restored['memory'])
+        for value in ('Budget 5000', 'No purchases', 'Venue unknown', '50 people'):
+            self.assertIn(value, restored['text'])
+        self.assertEqual(restored['pending_handoffs'][0]['id'], offer)
+        self.assertEqual(self.recovery('deliver', compact, budget=40000, ok=False)['code'], 'TARGET_MISMATCH')
+        self.assertEqual(self.recovery('deliver', full_receipt, summary=True, ok=False)['code'], 'TARGET_MISMATCH')
+        malformed = {**compact, 'memory_summary': 'true'}
+        self.assertEqual(self.recovery('deliver', malformed, summary=True, ok=False)['code'], 'INVALID_INPUT')
+        self.assertEqual(self.recovery('deliver', compact, budget=1000, summary=True, ok=False)['code'], 'BUDGET_TOO_SMALL')
+        (self.project / 'brief.txt').write_text('Owner has cancelled the event.', encoding='utf-8')
+        denied = self.recovery('deliver', compact, summary=True, ok=False)
+        self.assertEqual(denied['code'], 'EVIDENCE_CHANGED')
+        self.assertNotIn('Use original product labels', json.dumps(denied))
+        self.assertEqual(self.cli('status')['data']['revision'], 2)
 
 
 if __name__ == '__main__':

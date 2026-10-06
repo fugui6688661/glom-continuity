@@ -1,6 +1,6 @@
-# Lifecycle recovery boundary — unreleased
+# Lifecycle recovery boundary
 
-This is an adapter-development interface, not automatic setup for any host. The public Alpha.6 release does **not** include it. No host hook or global instruction file is installed by these commands. Automatic checkpoint saving is not implemented here.
+This interface is included in Alpha.7, not Alpha.6. It is an adapter-development interface, not automatic setup for every host; see the [specific Harness validation](managed-host-validation.md). No host hook or global instruction file is installed by these commands. Automatic checkpoint saving is not implemented here.
 
 `scripts/recovery.py` (installed entry point: `glom-continuity-recovery`) reuses the existing read-only `resume` core. It neither creates storage nor accepts handoffs, executes tools, calls models, edits native assistant memory, or starts a listener.
 
@@ -15,6 +15,7 @@ Pass these arguments on every invocation:
 | `--session-id` | **Current** host session identity, not a cached callback identity |
 | `--generation` | Host-owned binding epoch; regenerate on project switch, pause, revocation, or re-enable |
 | `--max-chars` | Whole successful JSON response plus LF budget; default 6000 characters, not tokens |
+| `--memory-summary` | Optional in XS candidates: retain every selected memory object, replace omitted-entry detail with reason counts; use the same setting for prepare and deliver |
 
 The adapter must select and trust the runtime before binding, keep binding metadata outside untrusted project instructions, and stop issuing calls while disabled. This core does not authenticate an OS user or maintain a consent database. These values and the receipt below are correlation checks, **not authorization tokens or a sandbox**. A same-user program that can call arbitrary CLI commands is outside a read-only tool boundary.
 
@@ -47,10 +48,19 @@ Run action `deliver`, supplying **only** the receipt on stdin and freshly sample
 - Malformed JSON, duplicate fields or oversized input fail with no project data.
 - A short output budget returns `BUDGET_TOO_SMALL`, with `data: null`; it never chops off constraints. Failure diagnostics have a fixed small shape and may exceed an impossibly small requested budget.
 - `STORAGE_RECOVERY_REQUIRED` withholds context when reading would require a database write, such as hot-journal rollback. Preserve the crash files and follow the explicitly authorized [storage recovery procedure](../INSTALL.md#storage-recovery-after-a-crash); never retry automatically with write access or inject cached text.
+- XS development also rejects external WAL/shared-memory state before SQLite opens it (`READONLY_WAL_UNSUPPORTED`). This separate boundary is not repaired by automatic retry or deleting sidecars; preserve the complete storage for review. Default storage uses rollback journaling.
 
 Successful delivery returns `data.target`, `data.context` and `delivery_state`. `empty` means the bound project has no checkpoint; `ready` means context can be reviewed, **not** that the work is complete or its next action is currently authorized. `context.check.semantic_completion_verified` remains false. Unreferenced planning stays explicitly `no_references` / `recorded_unverified`.
 
 Repeated reads do not add revisions or consume handoffs. They can produce fresher reference and expiry observations. This is not an exactly-once model-context injection guarantee.
+
+### Fitting everyday memory without dropping task requirements
+
+If this installed boundary's help lists `--memory-summary`, the authorized adapter can opt into it for both prepare and deliver. It uses core's existing summary recall: all selected memory, constraints, decisions, unresolved items and pending handoffs remain. Only non-selected entry details are replaced with counts. Default output is unchanged; no memory is deleted, retired or promoted by this option.
+
+A compact receipt includes `memory_summary: true` without embedding project text. Deliver checks this setting against the current invocation; a changed detail mode returns `TARGET_MISMATCH`, not a silent switch to a smaller context. A receipt with no field means the original full-detail mode; non-boolean values are invalid. The mode is a correlation check, not authorization. Both modes still reread references, reject stale revisions, and enforce the whole-response character budget. Too much selected content still fails; summary is not truncation or a token guarantee.
+
+This option is on the host-neutral process interface. It does not enable it in an existing native host configuration or claim that Codex, Claude, Harness or WorkBuddy loaded an adapter. The save policy generation and recovery binding epoch remain different boundaries: revoking the former does not update a host's current recovery target. A cooperating adapter must perform both parts of its authorized pause, drop queued deliveries, and rebind explicitly when resuming.
 
 ## Host-side obligations after delivery
 

@@ -9,7 +9,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-import venv
 import zipfile
 
 
@@ -95,7 +94,9 @@ class HarnessPackage(unittest.TestCase):
             self.assertEqual(len(artifacts), 1)
 
             runtime = base / '隔离 environment'
-            venv.EnvBuilder(with_pip=False, system_site_packages=False).create(runtime)
+            prepared = self.command([sys.executable, '-I', '-B', str(source / 'scripts/runtime_env.py'),
+                                     'create', '--directory', str(runtime)], base)
+            self.assertEqual(json.loads(prepared.stdout)['code'], 'RUNTIME_READY')
             binaries = runtime / ('Scripts' if os.name == 'nt' else 'bin')
             python = binaries / ('python.exe' if os.name == 'nt' else 'python')
             self.command(pip + ['--python', str(python), 'install', '--no-index', '--no-deps',
@@ -107,6 +108,10 @@ class HarnessPackage(unittest.TestCase):
             unrelated.mkdir()
             result = self.command([str(python), '-I', '-B', '-c', RESOURCE_PROBE], unrelated,
                                   input=json.dumps(RUNTIME_FILES))
+            environment_cli = binaries / ('glom-continuity-env.exe' if os.name == 'nt' else 'glom-continuity-env')
+            check = json.loads(self.command([str(environment_cli), 'check', '--directory', str(runtime)], unrelated).stdout)
+            self.assertEqual(check['code'], 'RUNTIME_READY')
+            self.assertFalse(check['data']['host_configuration_checked'])
             observed = json.loads(result.stdout)
             self.assertEqual({name: base64.b64decode(data, validate=True)
                               for name, data in observed['resources'].items()}, expected)
@@ -134,7 +139,13 @@ class HarnessPackage(unittest.TestCase):
                 packaged = {name[len(prefix):] for name in archive.namelist()
                             if name.startswith(prefix) and not name.endswith('/')}
                 self.assertEqual(packaged, {'__init__.py', *RUNTIME_FILES})
+                guide_prefix = 'glom_continuity/_guide/'
+                guide_names = set(json.loads((ROOT / 'guide-files.json').read_text(encoding='utf-8')))
+                self.assertEqual({name[len(guide_prefix):] for name in archive.namelist()
+                                  if name.startswith(guide_prefix)}, guide_names | {'GUIDE-MANIFEST.json'})
                 for name in archive.namelist():
+                    if name.startswith(guide_prefix):
+                        continue  # The exact public documentation allowlist was checked above.
                     self.assertTrue(set(Path(name).parts).isdisjoint({'qa', 'profiles', 'docs', 'tests'}), name)
 
     def check_installed_cli(self, binaries, harness_cli, base, unrelated, expected_assets):

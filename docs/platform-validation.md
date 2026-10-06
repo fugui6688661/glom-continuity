@@ -1,5 +1,18 @@
 # 跨平台 CI 与验证边界
 
+## XS 发行前检查：平台限定的清理用例
+
+XS 新增运行时清理检查包含一项仅适用于 POSIX 的进程组试验：
+`test_runtime_env.RuntimeEnvironment.test_timed_out_pip_stops_its_same_group_child_and_retains_environment`。
+CI 仅在 Windows 且完整 ID、理由
+`POSIX process-group cleanup; Windows tree cleanup not yet verified` 都匹配时，
+将它记为 `runtime_posix_cleanup_unverified`。这是明确的未验证项，不是 Windows 清理通过。
+
+摘要合同测试用合成 unittest 输出检验这一精确放行；相同跳过在 macOS/Linux、
+不同测试名、缺 MCP 理由、失败或整组无实际执行仍不能放行。
+这项检查不启动 Windows，也不证明本候选已经通过跨平台 CI；正式结果必须绑定具名候选和真实跑次。
+下方22项平台跳过的数字仅属于其注明的 Alpha.7 运行，不是 XS 的完整计数。
+
 ## 2026-09-25：Alpha.7 两条检查线路与本轮结果
 
 PR #5 的代码提交 `10e78d81d66a5715ca00d3646708634ea592eb9b` 已完成
@@ -136,7 +149,7 @@ alpha.4候选：JSON解析捕获`RecursionError`并返回`INVALID_INPUT`；测�
 
 ## Windows 与 Python 的真实边界
 
-以下来自本轮读取的 [CLI](../scripts/continuity.py)、[CLI 独立测试](../tests/test_independent.py)、[MCP 独立测试](../tests/test_mcp_independent.py)、[恢复独立测试](../tests/test_recovery_independent.py) 和 [交付测试](../tests/test_delivery.py)。这些是静态检查结论，不是 Windows 运行结果；并行修改后的实现必须重新核对。
+以下来自当时读取的仓库文件：`scripts/continuity.py`、`tests/test_independent.py`、`tests/test_mcp_independent.py`、`tests/test_recovery_independent.py` 和 `tests/test_delivery.py`。这些是历史源码路径，不是 wheel 说明目录内的可执行入口；需要复核源码时，使用该跑次对应的源包。以下是静态检查结论，不是 Windows 运行结果；并行修改后的实现必须重新核对。
 
 | 边界 | 当前源码/测试事实 | CI 如何解释 |
 | --- | --- | --- |
