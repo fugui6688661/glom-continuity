@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build a local candidate from an explicit allowlist; does not publish or install."""
 import argparse
+import ast
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -8,9 +9,40 @@ import re
 import zipfile
 
 
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate metadata key')
+        result[key] = value
+    return result
+
+
+def release_version(files):
+    """Check declared labels without importing the program being packaged."""
+    tree = ast.parse(files['scripts/continuity.py'])
+    if any(isinstance(node, (ast.AnnAssign, ast.AugAssign))
+           and isinstance(node.target, ast.Name) and node.target.id == 'VERSION' for node in tree.body):
+        raise ValueError('Nonliteral or ambiguous VERSION declaration')
+    declarations = [node for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == 'VERSION'
+                            for target in node.targets)]
+    if len(declarations) != 1 or len(declarations[0].targets) != 1:
+        raise ValueError('Missing or ambiguous VERSION declaration')
+    version = ast.literal_eval(declarations[0].value)
+    if (not isinstance(version, str) or not version or len(version) > 128
+            or not version.isascii() or any(char.isspace() or not char.isprintable() for char in version)):
+        raise ValueError('Invalid VERSION declaration')
+    plugin = json.loads(files['.codex-plugin/plugin.json'], object_pairs_hook=unique_object)
+    if not isinstance(plugin, dict) or plugin.get('version') != version:
+        raise ValueError('Release version mismatch')
+    return version
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--expect-version', help='Require this exact declared CLI/plugin label before packaging')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     paths = json.loads((root / 'release-files.json').read_text(encoding='utf-8'))
@@ -34,7 +66,15 @@ def main():
         if re.search(r'/Users/[A-Za-z0-9_.-]+/|[A-Z]:\\Users\\[A-Za-z0-9_.-]+\\', text):
             parser.error('Personal absolute path found; sanitize before packaging: ' + name)
         files[name] = content
+    try:
+        version = release_version(files)
+    except (KeyError, ValueError, SyntaxError, TypeError):
+        parser.error('Release version mismatch or invalid declaration; review program and plugin labels')
+    if args.expect_version is not None and args.expect_version != version:
+        parser.error('Release version mismatch with --expect-version')
     manifest = {'format': 'continuity-package-v1', 'published': False,
+                'tool_version': version,
+                'program_sha256': hashlib.sha256(files['scripts/continuity.py']).hexdigest(),
                 'files': [{'path': name, 'bytes': len(content), 'sha256': hashlib.sha256(content).hexdigest()}
                           for name, content in sorted(files.items())]}
     files['PACKAGE-MANIFEST.json'] = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode()
@@ -48,6 +88,7 @@ def main():
     print(json.dumps({'path': str(args.output), 'files': len(files),
                       'bytes': args.output.stat().st_size,
                       'sha256': hashlib.sha256(args.output.read_bytes()).hexdigest(),
+                      'tool_version': version,
                       'published': False}))
 
 

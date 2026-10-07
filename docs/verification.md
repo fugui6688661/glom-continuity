@@ -239,3 +239,13 @@ Only promote a row when its specific test has a result. A protocol pass does not
 ## Release decision (not a runtime test)
 
 On 2026-09-12 the owner confirmed `fugui6688661/glom-continuity` as the public repository target and approved the [MIT License](../LICENSE). This resolves the owner/license decision only. It does not establish repository availability, publication, or any of the unverified behavior above. Earlier archives and their test provenance remain unchanged.
+
+## XS release-label preflight
+
+The local builder checks the literal top-level program `VERSION` against the packaged Codex plugin's `version` before creating an archive. Maintainers can additionally require the reviewed label:
+
+```sh
+python3 -B scripts/build_release.py --output /absolute/new-candidate.zip --expect-version 0.1.0-alpha.7
+```
+
+Use the intended candidate's exact declared label, not this example as a stable-release instruction. A mismatch, absent identity file or ambiguous/nonliteral declaration is refused before archive creation. The successful package manifest and build receipt expose `tool_version`; the manifest also records the archived program's SHA-256. This is a consistency check, not an import/execution check, version-syntax validator, signed publisher identity or release approval. Labels still cannot distinguish different builds: retain each archive's full SHA-256 and check the installed program and matching guide separately. Old manifests without these additive fields remain historical evidence; this check does not rewrite them or relabel public Alpha.7.

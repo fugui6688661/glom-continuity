@@ -12,6 +12,7 @@
     "tests/test_cli.py",
     "tests/test_checkpoint_binding.py",
     "tests/test_delivery.py",
+    "tests/test_release_identity.py",
     "tests/test_doctor.py",
     "tests/test_entry_integration.py",
     "tests/test_field_lessons.py",

@@ -92,6 +92,7 @@
   "tests/test_doctor.py",
   "tests/test_return_work.py",
   "tests/test_delivery.py",
+  "tests/test_release_identity.py",
   "tests/test_installation.py",
   "tests/test_runtime_env.py",
   "tests/test_runtime_install.py",
