@@ -329,8 +329,8 @@
     },
     {
       "path": "scripts/runtime_env.py",
-      "bytes": 17049,
-      "sha256": "0f4e25b1028d449cc9b380171a046d4dc20ee2dc9b6aed1ababef3a31dfdc5e4"
+      "bytes": 17227,
+      "sha256": "1d2bff0e1a90dbcfc45f343488eb2088cae3ff0702b1ad82cd3af4320efa3910"
     },
     {
       "path": "scripts/smoke_demo.py",
@@ -504,8 +504,8 @@
     },
     {
       "path": "tests/test_runtime_env.py",
-      "bytes": 20317,
-      "sha256": "69a7bd577ea4af220fed207a90f82886fea121634d47e277cddbfe8438ae2c5b"
+      "bytes": 20400,
+      "sha256": "078432378a136a5666ca1909c6a6e9b51fc866b6492ece786f31a35cf8c1ba97"
     },
     {
       "path": "tests/test_runtime_install.py",

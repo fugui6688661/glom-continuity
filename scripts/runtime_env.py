@@ -170,7 +170,9 @@ def verify_pip(data):
                                'pip_probe', runtime=data,
                                next_step='Keep this environment. Use a working base Python to create a separate environment.')
     try:
-        run_child([data['python_executable'], '-I', '-B', '-m', 'pip', '--version'], 'pip_probe')
+        # pip prints its installation path. -I ignores encoding environment
+        # variables, so its pipe must explicitly match our UTF-8 decoder.
+        run_child([data['python_executable'], '-I', '-X', 'utf8', '-B', '-m', 'pip', '--version'], 'pip_probe')
     except EnvironmentFault as fault:
         fault.runtime = dict(data)
         raise
@@ -206,7 +208,7 @@ def verified_wheel(value, expected):
 def install_tool(data, wheel, target):
     path, digest = wheel
     python = data['python_executable']
-    run_child([python, '-I', '-B', '-m', 'pip', 'install', '--no-index', '--no-deps',
+    run_child([python, '-I', '-X', 'utf8', '-B', '-m', 'pip', 'install', '--no-index', '--no-deps',
                '--only-binary', ':all:', '--require-hashes', '--no-cache-dir', '--no-input',
                '--disable-pip-version-check', path.as_uri() + '#sha256=' + digest], 'wheel_install', timeout=60)
     output = run_child([python, '-I', '-B', '-m', 'glom_continuity', '--project', str(target), 'doctor'], 'tool_probe')

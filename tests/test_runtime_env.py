@@ -79,9 +79,10 @@ runpy.run_path(sys.argv[0], run_name='__main__')
             runtime = json.loads(verified.stdout)
             self.assertEqual(Path(runtime['prefix']).resolve(), target)
             self.assertNotEqual(runtime['prefix'], runtime['base'])
-            pip = subprocess.run([python, '-I', '-B', '-m', 'pip', '--version'],
-                                 capture_output=True, text=True, timeout=10)
+            pip = subprocess.run([python, '-I', '-X', 'utf8', '-B', '-m', 'pip', '--version'],
+                                 capture_output=True, text=True, encoding='utf-8', timeout=10)
             self.assertEqual(pip.returncode, 0, pip.stderr)
+            self.assertIn(str(target), pip.stdout)
 
     def test_check_reports_the_selected_environment_without_writing_it(self):
         with tempfile.TemporaryDirectory() as scratch:
