@@ -1,5 +1,42 @@
 # 跨平台 CI 与验证边界
 
+<a id="xs-ci-20261007"></a>
+
+## XS 候选：完成的固定跑次（2026-10-07）
+
+[CI 37559505399 / attempt 1](https://github.com/fugui6688661/glom-continuity/actions/runs/37559505399)
+的五个 job 均为 success。分支提交为 `21d6340e23b76dfa0b225b347e22d4025180040f`；
+实际合并测试提交为 `f626be5490627b6b631ab6bdca361c32af2f4445`，其 tree
+`73dd9a706e3ceb5c355efb79347fdb622f82843b` 与该分支提交相同。
+它包含下方旧轮次之后的修复和指南修改，原失败记录仍保留。
+
+| 环境 | 最终总结 |
+| --- | --- |
+| macOS14 / Python3.12.10 | 347 tests，0 failure/error/skip |
+| Ubuntu24.04 / Python3.10.21 | 347 tests，0 failure/error/skip |
+| Ubuntu24.04 / Python3.12.14 | 347 tests，0 failure/error/skip |
+| Windows2022 / Python3.12.10 | 347 tests，0 failure/error，42项下文预声明的平台限制；`passed_with_platform_skips` |
+| Required Harness / macOS / Node26.6.0 / DSH0.1.5-rc.1 | 35项 Node 用例和1项真实受管宿主生命周期通过，0跳过；正常受管目录清理确认 |
+
+四个 portable 环境均安装并检查 MCP2.2.0，依赖、测试清单和合成 smoke 分别通过。
+这些数字是各次 unittest 最终计数，不相加为独立能力数；progress 行数不用于补齐成绩。
+宿主摘要明确 `real_model_quality_verified=false`、`ui_verified=false`。
+Windows 的42项不是成功项，也不包含安全入口写入/交换或所有后代清理的支持承诺。
+
+五个下载归档的 SHA-256 与 GitHub artifact digest 完整一致（artifact 有保留期限）：
+
+| 摘要归档 | SHA-256 |
+| --- | --- |
+| Windows3.12 | `557df70ba1322c20c57ccb2deb98fafa5f37850b12cb81c92a7db603ae7e3464` |
+| Ubuntu3.12 | `65314f6e35f21d1356b0899bc7faa8ae901f5dcda777836590c452c2efa088d2` |
+| Ubuntu3.10 | `54b2a92f05f2060982d0fb81d2fb8d5e86863485e2663e0c438bc8a8f61213ba` |
+| macOS3.12 | `2134a4c68b8b7158805fb5a4a4355f882bca9971b4d7e93f87c9e4b144975d82` |
+| Harness/macOS | `657b50f12d6553855f5303e882b7eddf357b01aaa624216a9591a897d5adf621` |
+
+CI 通过仅关闭这一提交的声明范围；它不生成或发布 XS 正式版，不代替具名最终包的
+匿名下载、真实用户首用或模型自主行为验收。其他本机观察分别列在[支持矩阵](../adapters/support-matrix.md)。
+下面保留此前失败、修复依据和历史平台边界，不用新成功擦除旧结果。
+
 ## XS 候选整套测试的执行预算
 
 [PR #7 首轮 37549582656](https://github.com/fugui6688661/glom-continuity/actions/runs/37549582656)

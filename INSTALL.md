@@ -54,7 +54,8 @@ python3 -I -B scripts/runtime_env.py create --directory "/absolute/tools/recaloo
 
 Windows 的命令写法是将 `python3` 换成可用的 `py -3`，并换成本机绝对路径；这不是 Windows 实机验收声明。
 POSIX 默认符号链接、Windows 默认副本，无须激活或管理员权限。保留基 Python，不把虚拟环境当可搬运包；
-Windows/Linux 的 XS 支持仍需分别验证，不能由此推定所有平台或宿主已支持。
+已完成的 Windows/Linux 限定 CI 与尚未提供的宿主能力分列在[支持矩阵](adapters/support-matrix.md)；
+命令写法、CI 通过和用户实机全部可用不是同一件事。
 
 This is a local XS candidate interface, not a published update. Platform acceptance requires the named candidate's results.
 After verifying the supplied archive, one `create` accepts a trusted absolute local wheel path and its own 64-hex SHA-256
@@ -210,7 +211,7 @@ For Codex, integration previews and installed-entry inspection warn when the com
 
 第一行只预览；第二行才明确新建文件。`codex` 对应项目 `AGENTS.md`，`claude-code` 对应 `.claude/rules/recaloom.md`，`workbuddy` 对应代码开发项目 `.codebuddy/CODEBUDDY.md`。不修改全局设置，也不要求安装 Harness。已有目标或 Codex 的 `AGENTS.override.md` 会拒绝，不能通过删除旧规则来凑成功；需要人工审查整合。父目录是链接或普通文件时同样拒绝。无项目记忆、配套说明不可用或响应预算不足时不写入。
 
-这份入口只记录程序、说明和项目身份，不复制业务正文、聊天或密钥。新建成功返回 `written_unverified`，**不是已被助手加载**：请在同一项目新开会话，核对它是否真实读取并恢复；不同版本、规则排除和上下文限制都会影响结果。自动保存仍未提供。预览可跨平台使用；安全自动写入目前仅开放支持目录句柄和禁止跟随链接的 POSIX 运行时，Windows 返回 `ENTRY_WRITE_UNSUPPORTED`，不声称 Windows 安装已验。
+这份入口只记录程序、说明和项目身份，不复制业务正文、聊天或密钥。新建成功返回 `written_unverified`，**不是已被助手加载**：请在同一项目新开会话，核对它是否真实读取并恢复；不同版本、规则排除和上下文限制都会影响结果。入口本身不开自动保存；XS 另有[授权候选保存接口](docs/authorized-save.md)及需单独配置的[Claude 事件适配](adapters/claude-code/authorized-save.md)。预览可跨平台使用；安全自动写入目前仅开放支持目录句柄和禁止跟随链接的 POSIX 运行时，Windows 返回 `ENTRY_WRITE_UNSUPPORTED`。Windows 基础安装的限定 CI 不补足这一缺口。
 
 XS project-entry candidates add `--host codex|claude-code|workbuddy`; only `--write-instructions` creates a new project rule. Existing rules and priority overrides are refused, never merged or replaced automatically. Binding metadata includes private local paths: review before sharing or committing the generated file. A full temporary file is published without overwriting; an interrupted write may leave an inert `.pending` file or empty parent directories, not a partially published rule. This is not a sandbox against another process with the same user's filesystem rights. Verify actual host loading separately. On upgrade, a changed runtime hash must stop recovery until the selected binding is deliberately reviewed. Before uninstalling, follow [preserve-data removal](#preserve-data-removal): inspect and pause the recognized entry while the tool is still available. An integrated managed block shares a file with user rules; do not delete that file or hand-edit the block. Uninstalling the Python package does not remove project rules or memory.
 
@@ -241,7 +242,7 @@ XS project-entry candidates add `--host codex|claude-code|workbuddy`; only `--wr
 
 对于 setup 新建的独立完整模板，pause 将其移到同目录的 `.recaloom-<host>.paused`，enable 移回原路径；不删记忆、不改全局配置。需要未被编辑的规范模板、正确项目和准确的 `--expect-sha256`。两位置都存在、链接、模板内修改、优先 override 或摘要变化均停止；不要自动重新取摘要凑通过。旧运行时失效仍可暂停，但不能自动启用或重新绑定。对于下方 integrate 生成的嵌入块，不移动整份文件，暂停/启用只替换插件块，用户规则仍在原位。已有暂停文件时 setup 不另建一套活动入口。
 
-移动使用 macOS `renameatx_np(RENAME_EXCL)` 或 Linux `renameat2(RENAME_NOREPLACE)`；符号/目录句柄接口不支持就明确拒绝，不回退到覆盖式移动。Windows 移动后端尚未实现；Mac 上的测试也不等于 Linux 实机认证。无跨文件系统复制、删除或自动回滚；在有并发编辑、远程文件系统或系统错误时，操作可能需要人工复核。
+移动使用 macOS `renameatx_np(RENAME_EXCL)` 或 Linux `renameat2(RENAME_NOREPLACE)`；符号/目录句柄接口不支持就明确拒绝，不回退到覆盖式移动。Windows 移动后端尚未实现；Linux CI 的限定运行见[平台记录](docs/platform-validation.md#xs-ci-20261007)，不认证所有文件系统。无跨文件系统复制、删除或自动回滚；在有并发编辑、远程文件系统或系统错误时，操作可能需要人工复核。
 
 独立模板的移动必须看 `data.operation.outcome`，不能仅看外层 `ok:true`；嵌入块替换则看下方说明的 `data.upgrade.outcome`：
 
@@ -267,7 +268,7 @@ These candidate-only CLI operations relocate a recognized standalone template, o
 
 第一行只预览完整新内容与绑定。核对项目、程序来源和两份摘要，再明确应用；三宿主入口均沿用 `--host`。不要自动刷新摘要、换位置或循环重试。旧版本程序已卸载不妨碍识别旧规则；新版本配套说明必须可用。只接受工具生成的规范完整模板或下方 integrate 的规范嵌入块，不覆盖未知自写文件。嵌入块外的用户改动可以保留并重新审阅；块内改动、活动与暂停并存、链接、优先override、错误项目或预览后新旧内容/位置状态变化都停止。
 
-应用在同一目录排他创建随机 `.recaloom-<host>.upgrade-<id>`，请求0600模式，完整写入并刷文件后才调用一次 macOS `RENAME_SWAP` / Linux `RENAME_EXCHANGE`。正常观察结果是规则位置获得新文件、保留位置获得旧文件；两份都保留，没有自动unlink/回滚/覆盖式回退。原来paused仍paused，重复应用相同绑定返回 `already_current`。Windows尚无此原生后端，Linux未在本轮实机认证；平台或文件系统不支持就拒绝，不用普通rename代替。
+应用在同一目录排他创建随机 `.recaloom-<host>.upgrade-<id>`，请求0600模式，完整写入并刷文件后才调用一次 macOS `RENAME_SWAP` / Linux `RENAME_EXCHANGE`。正常观察结果是规则位置获得新文件、保留位置获得旧文件；两份都保留，没有自动unlink/回滚/覆盖式回退。原来paused仍paused，重复应用相同绑定返回 `already_current`。Windows尚无此原生后端；Linux限定CI与宿主实接分开记录，平台或文件系统不支持就拒绝，不用普通rename代替。
 
 查看 `data.upgrade`，不只看外层 `ok`：`exchange_observed` 表示当次双向身份/字节及父目录检查一致；`staged_needs_review` 表示已创建升级件但尚不能完成交换；`exchanged_needs_review` 表示系统交换成功、后续检查不全；`outcome_unknown` 则不能推断是否已交换。`stage`、`native_result/native_errno`、`error_code/io_errno` 分别描述阶段、系统交换和其他I/O。`retained_role`可能是previous、candidate、partial_or_unknown或unknown，**不能把任意残留都叫“旧规则备份”**。
 
