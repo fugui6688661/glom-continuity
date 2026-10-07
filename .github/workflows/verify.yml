@@ -108,7 +108,10 @@ jobs:
                   'HANDOFF_NOT_FOUND NO_CHECKPOINT OUTPUT_EXISTS BUDGET_TOO_SMALL REVISION_CONFLICT '
                   'EVIDENCE_CHANGED HANDOFF_EXISTS WRONG_RECIPIENT ALREADY_ACCEPTED HANDOFF_EXPIRED '
                   'STALE_HANDOFF UNKNOWN_COMMAND UNRECOGNIZED_STORAGE NO_ARTIFACT '
-                  'HANDOFF_NOT_ACCEPTED RETURN_CONFLICT').split())
+                  'HANDOFF_NOT_ACCEPTED RETURN_CONFLICT INVALID_DIRECTORY ENVIRONMENT_IO_ERROR '
+                  'RUNTIME_UNAVAILABLE RUNTIME_START_FAILED RUNTIME_IDENTITY_MISMATCH '
+                  'PIP_BOOTSTRAP_FAILED PIP_UNAVAILABLE WHEEL_INSTALL_FAILED TOOL_CHECK_FAILED '
+                  'RUNTIME_TIMEOUT RUNTIME_MODE_UNAVAILABLE RUNTIME_INTERRUPTED ENTRY_WRITE_UNSUPPORTED').split())
               codes = sorted(set(re.findall(r'\b[A-Z][A-Z_]+\b', message)) & known_codes)
               codes += [label.upper() + '_' + number for label, number in re.findall(r'\[(Errno|WinError) (\d{1,6})\]', message)]
               if 'Coverage gap: did not actually SIGKILL' in message:

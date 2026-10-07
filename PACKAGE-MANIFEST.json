@@ -29,8 +29,8 @@
     },
     {
       "path": ".github/workflows/verify.yml",
-      "bytes": 24383,
-      "sha256": "bd4592c5588fa61059cbe5c783ea8164d81fd38aac60be09b9ed76bbb51d94cc"
+      "bytes": 24713,
+      "sha256": "3d2241d6165cf66cefdf74229b238a6423ece9480540ed5beed09082696ea068"
     },
     {
       "path": ".gitignore",
@@ -369,8 +369,8 @@
     },
     {
       "path": "tests/test_ci_summary.py",
-      "bytes": 9967,
-      "sha256": "3bdc2b471ced5c4e2a9218ac92bdc4a652a747118d46c0db5347d445916981ff"
+      "bytes": 11299,
+      "sha256": "5096ba20a5b9662b061870a80940f914d2105c90c2ffeedfa4b222c0605808c6"
     },
     {
       "path": "tests/test_claude_save_hook.py",
@@ -524,8 +524,8 @@
     },
     {
       "path": "tests/test_setup.py",
-      "bytes": 65891,
-      "sha256": "a31ef7ab6d05f2fba4116eb18c9d53164bc1ce19199581c1b7d1e33a5e582f13"
+      "bytes": 66687,
+      "sha256": "631aaf8a9fa3639f1a5395699c2373a4960fc69cedca4d925facb581af4f251d"
     },
     {
       "path": "tests/test_xs_safety.py",

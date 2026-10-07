@@ -15,6 +15,25 @@ HOST_REASON = 'Managed homes currently support POSIX only'
 
 
 class WorkflowSummary(unittest.TestCase):
+    def test_failure_summary_keeps_install_stage_codes_not_private_payloads(self):
+        summarize = self.contract()['failure_detail']
+        codes = ('INVALID_DIRECTORY', 'ENVIRONMENT_IO_ERROR', 'RUNTIME_UNAVAILABLE',
+                 'RUNTIME_START_FAILED', 'RUNTIME_IDENTITY_MISMATCH', 'PIP_BOOTSTRAP_FAILED',
+                 'PIP_UNAVAILABLE', 'WHEEL_INSTALL_FAILED', 'TOOL_CHECK_FAILED', 'RUNTIME_TIMEOUT',
+                 'RUNTIME_MODE_UNAVAILABLE', 'RUNTIME_INTERRUPTED', 'ENTRY_WRITE_UNSUPPORTED')
+        for code in codes:
+            with self.subTest(code=code):
+                text = ('File "/PRIVATE/project/test_runtime_env.py", line 43, in test_create\n'
+                        'AssertionError: 1 != 0 : {"ok": false, "code": "' + code + '", '
+                        '"data":{"directory":"PRIVATE_PROJECT", "message":"PRIVATE_TOKEN"}}\n')
+                detail = summarize(text)
+                self.assertEqual(detail['error_codes'], [code])
+                self.assertEqual(detail['scalar_comparison'], '1 != 0')
+                self.assertEqual(detail['test_location'], 'test_runtime_env.py:43')
+                self.assertNotIn('PRIVATE', str(detail))
+        unknown = summarize('AssertionError: {"code":"PRIVATE_UNKNOWN_CODE"}\n')
+        self.assertEqual(unknown['error_codes'], ['AssertionError'])
+
     def contract(self):
         # Inspect only the self-contained report functions of the trusted local
         # workflow. Never run its package download, runner setup or upload steps.

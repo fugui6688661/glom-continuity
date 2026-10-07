@@ -521,7 +521,19 @@ with patch('ctypes.CDLL',return_value=Library()), patch('os.fsync',sync), patch(
 
     def test_workbuddy_priority_after_install_is_diagnosed_and_blocks_lifecycle(self):
         self.cli('init', '--name', 'Installed but later shadowed')
-        self.cli('setup', '--host', 'workbuddy', '--write-instructions')
+        if os.name != 'posix':
+            before = {str(p.relative_to(self.project)): p.read_bytes()
+                      for p in self.project.rglob('*') if p.is_file()}
+            refused = self.cli('setup', '--host', 'workbuddy', '--write-instructions', ok=False)
+            self.assertEqual(refused['code'], 'ENTRY_WRITE_UNSUPPORTED')
+            self.assertEqual({str(p.relative_to(self.project)): p.read_bytes()
+                              for p in self.project.rglob('*') if p.is_file()}, before)
+            card = self.cli('setup', '--host', 'workbuddy')['data']['project_entry']
+            target = self.project / card['relative_path']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(card['content'].encode('utf-8'))
+        else:
+            self.cli('setup', '--host', 'workbuddy', '--write-instructions')
         status = self.cli('entry', 'status', '--host', 'workbuddy')['data']
         expected = status['sha256']
         (self.project / 'CODEBUDDY.md').write_text('', encoding='utf-8')
