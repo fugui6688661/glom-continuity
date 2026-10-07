@@ -13,7 +13,7 @@ REASON = 'POSIX process-group cleanup; Windows tree cleanup not yet verified'
 
 
 class WorkflowSummary(unittest.TestCase):
-    def evaluate(self, output, windows):
+    def contract(self):
         # Inspect only the self-contained report functions of the trusted local
         # workflow. Never run its package download, runner setup or upload steps.
         workflow = (ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8')
@@ -23,7 +23,10 @@ class WorkflowSummary(unittest.TestCase):
         self.assertTrue(all(isinstance(item, ast.FunctionDef) for item in contract.body))
         namespace = {'re': re}
         exec(compile(contract, '<workflow summary contract>', 'exec'), namespace)
-        return namespace['test_summary'](output, windows)
+        return namespace
+
+    def evaluate(self, output, windows):
+        return self.contract()['test_summary'](output, windows)
 
     def output(self, case=CASE, reason=REASON, extra=''):
         method = case.rsplit('.', 1)[1]
@@ -49,6 +52,29 @@ class WorkflowSummary(unittest.TestCase):
         ):
             with self.subTest(windows=windows, output=output):
                 self.assertFalse(self.evaluate(output, windows)['acceptance_valid'])
+
+    def test_incomplete_run_reports_only_structured_progress_and_never_passes(self):
+        output = ('test_one (test_example.Example.test_one) ... ok\n'
+                  'test_two (test_example.Example.test_two) ... skipped "PRIVATE REASON"\n'
+                  'test_three (test_example.Example.test_three) ... FAIL\n'
+                  'PRIVATE DIAGNOSTIC /private/fixture credential=synthetic-only\n'
+                  'test_four (test_example.Example.test_four) ... ')
+        report = self.evaluate(output, False)
+        self.assertFalse(report['acceptance_valid'])
+        self.assertIsNone(report['tests_run'])
+        self.assertEqual(report['progress'], {
+            'started': 4, 'completed': 3,
+            'outcomes': {'ok': 1, 'FAIL': 1, 'ERROR': 0, 'skipped': 1},
+            'last_started': 'test_example.Example.test_four',
+        })
+        self.assertNotIn('PRIVATE', str(report['progress']))
+        progress = self.contract()['test_progress']
+        self.assertEqual(progress(output.encode()), report['progress'])
+        self.assertEqual(progress(None), {
+            'started': 0, 'completed': 0,
+            'outcomes': {'ok': 0, 'FAIL': 0, 'ERROR': 0, 'skipped': 0},
+            'last_started': None,
+        })
 
 
 if __name__ == '__main__':

@@ -29,8 +29,8 @@
     },
     {
       "path": ".github/workflows/verify.yml",
-      "bytes": 20921,
-      "sha256": "8ebe7c72e4d207af685ec6dec48d2b5ce7a4d2ef420791ef87599c66e50f282d"
+      "bytes": 22273,
+      "sha256": "1aae42ef840fefc2dcc22d7be5df07a58149ccdb7ec5dce4d0640b7fee2bb588"
     },
     {
       "path": ".gitignore",
@@ -214,8 +214,8 @@
     },
     {
       "path": "docs/platform-validation.md",
-      "bytes": 27049,
-      "sha256": "e1a80716c4304195ca93948c50ee24bd77a7a264a7173a6a80ae9e7ad2031e6c"
+      "bytes": 27992,
+      "sha256": "7c6ead4da1789f31fed0e7d8d4d4a813cbb24bbac2a98fa0a207829f03838c1f"
     },
     {
       "path": "docs/project-memory.md",
@@ -369,8 +369,8 @@
     },
     {
       "path": "tests/test_ci_summary.py",
-      "bytes": 2617,
-      "sha256": "a413b8dd23626b01cc208e38b82e6764cdd92239533e7bd3ba1b9b0ae107c039"
+      "bytes": 3917,
+      "sha256": "dbd925338e10515fd4600912a910fd2a592cc5452d709db2a48ad90d8ee0e3b7"
     },
     {
       "path": "tests/test_claude_save_hook.py",

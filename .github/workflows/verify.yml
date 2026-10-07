@@ -27,7 +27,7 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository))
     name: Portable / ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +78,24 @@ jobs:
 
           def identifier(method, owner):
               return owner if owner.endswith('.' + method) else owner + '.' + method
+
+          def test_progress(stderr):
+              # Progress is not a verdict. Never retain free-form diagnostics,
+              # fixture values, skip reasons, command lines or raw partial logs.
+              if isinstance(stderr, bytes):
+                  stderr = stderr.decode('utf-8', errors='replace')
+              outcomes = {key: 0 for key in ('ok', 'FAIL', 'ERROR', 'skipped')}
+              started, last = 0, None
+              for match in re.finditer(
+                      r'^(test_[A-Za-z0-9_]{1,180}) \((test_[A-Za-z0-9_.]{1,360})\) \.\.\. ([^\n]*)',
+                      stderr or '', re.M):
+                  started += 1
+                  last = identifier(match[1], match[2])
+                  result = re.match(r'^(ok|FAIL|ERROR|skipped)(?:\s|$)', match[3])
+                  if result:
+                      outcomes[result[1]] += 1
+              return {'started': started, 'completed': sum(outcomes.values()),
+                      'outcomes': outcomes, 'last_started': last}
 
           def failure_detail(block):
               # Extract the last exception, not its free-form message or traceback.
@@ -161,7 +179,8 @@ jobs:
                            and len(skipped) == counts['skipped']
                            and all(item['allowed'] for item in skipped))
               return {'tests_run': int(ran[1]) if ran else None, 'counts': counts,
-                      'skipped': skipped, 'problems': problems, 'acceptance_valid': valid}
+                      'skipped': skipped, 'problems': problems, 'acceptance_valid': valid,
+                      'progress': test_progress(stderr)}
 
           root = Path.cwd()
           result_dir = Path(os.environ['RUNNER_TEMP']) / 'continuity-results'
@@ -205,8 +224,10 @@ jobs:
                   phase.update(state='passed' if completed.returncode == 0 else 'failed',
                                exit_code=completed.returncode)
                   return completed
-              except subprocess.TimeoutExpired:
+              except subprocess.TimeoutExpired as exc:
                   phase.update(state='timeout', exit_code=None)
+                  if name == 'unittest':
+                      phase['progress'] = test_progress(exc.stderr)
                   return None
               finally:
                   phase['seconds'] = round(time.monotonic() - started, 2)
@@ -239,7 +260,9 @@ jobs:
                           if inventory is None or inventory.returncode != 0:
                               raise ValueError('Coverage inventory failed')
                           report['coverage'] = json.loads(inventory.stdout)
-                          tests = run_phase('unittest', ['scripts/ci_plan.py', 'portable'], 300)
+                          # Whole-suite capacity, not a product response-time SLO.
+                          # Individual test/host deadlines and all verdicts stay unchanged.
+                          tests = run_phase('unittest', ['scripts/ci_plan.py', 'portable'], 900)
                           if tests is not None:
                               report['unittest'] = test_summary(tests.stderr, os.name == 'nt')
                               if not report['unittest']['acceptance_valid']:
