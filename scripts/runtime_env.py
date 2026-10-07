@@ -256,7 +256,7 @@ def main(argv=None):
             data = inspect_runtime(target)
             verify_pip(data)
             data.update(directory=str(target), tool_installation_checked=False, host_configuration_checked=False)
-            print(json.dumps(dict(ok=True, code='RUNTIME_READY', data=data), ensure_ascii=False))
+            print(json.dumps(dict(ok=True, code='RUNTIME_READY', data=data), ensure_ascii=True))
             return 0
         wheel = None
         if args.wheel is not None or args.sha256 is not None:
@@ -281,7 +281,9 @@ def main(argv=None):
         if wheel is not None:
             phase = 'wheel_install'
             install_tool(data, wheel, target)
-        print(json.dumps(dict(ok=True, code='TOOL_READY' if wheel is not None else 'RUNTIME_READY', data=data), ensure_ascii=False))
+        # ASCII JSON remains writable through redirected legacy-code-page stdout;
+        # JSON consumers still recover the exact Unicode paths.
+        print(json.dumps(dict(ok=True, code='TOOL_READY' if wheel is not None else 'RUNTIME_READY', data=data), ensure_ascii=True))
         return 0
     except (EnvironmentFault, OSError, subprocess.SubprocessError) as exc:
         fault = exc if isinstance(exc, EnvironmentFault) else EnvironmentFault(
@@ -290,7 +292,7 @@ def main(argv=None):
         print(json.dumps(dict(ok=False, code=fault.code, message=str(fault), data=dict(
             phase=fault.phase, directory=str(target) if target else None, created=created,
             partial_environment_retained=created, exit_code=fault.exit_code, next_step=fault.next_step,
-            runtime=fault.runtime, child_cleanup=fault.cleanup)), ensure_ascii=False))
+            runtime=fault.runtime, child_cleanup=fault.cleanup)), ensure_ascii=True))
         return 1
 
 

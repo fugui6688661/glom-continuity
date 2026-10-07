@@ -19,11 +19,48 @@ CLI = ROOT / 'scripts/runtime_env.py'
 
 
 class RuntimeEnvironment(unittest.TestCase):
-    def command(self, *args):
+    def command(self, *args, stdout_encoding=None):
         env = {key: os.environ[key] for key in ('PATH', 'SystemRoot', 'WINDIR') if key in os.environ}
         env['PIP_CONFIG_FILE'] = os.devnull
-        return subprocess.run([sys.executable, '-I', '-B', str(CLI), *args],
+        entry = [str(CLI)]
+        if stdout_encoding is not None:
+            # -I ignores PYTHONIOENCODING/PYTHONUTF8. Constrain only the OS
+            # output boundary; the public CLI and all child processes are real.
+            wrapper = '''import runpy, sys
+sys.stdout.reconfigure(encoding=sys.argv.pop(1), errors='strict')
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name='__main__')
+'''
+            entry = ['-c', wrapper, stdout_encoding, str(CLI)]
+        return subprocess.run([sys.executable, '-I', '-B', *entry, *args],
                               env=env, capture_output=True, text=True, timeout=90)
+
+    def test_create_round_trips_unicode_paths_with_constrained_stdout(self):
+        for codec in ('cp1252', 'ascii'):
+            with self.subTest(codec=codec), tempfile.TemporaryDirectory() as scratch:
+                target = Path(scratch).resolve() / '中文 café 🚀 environment'
+                result = self.command('create', '--directory', str(target), stdout_encoding=codec)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, '')
+                self.assertTrue(result.stdout.isascii())
+                response = json.loads(result.stdout)
+                self.assertIs(response['ok'], True)
+                self.assertEqual(response['code'], 'RUNTIME_READY')
+                data = response['data']
+                self.assertEqual(data['directory'], str(target))
+                self.assertEqual(Path(data['prefix']).resolve(), target)
+                python = target / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+                self.assertEqual(data['python_executable'], str(python))
+                verified = subprocess.run([data['python_executable'], '-I', '-B', '-c',
+                    'import json, sys; print(json.dumps({"prefix":sys.prefix,"base":sys.base_prefix}))'],
+                    capture_output=True, text=True, timeout=10)
+                self.assertEqual(verified.returncode, 0, verified.stderr)
+                runtime = json.loads(verified.stdout)
+                self.assertEqual(Path(runtime['prefix']).resolve(), target)
+                self.assertNotEqual(runtime['prefix'], runtime['base'])
+                self.assertFalse(data['host_integrated'])
+                self.assertFalse(data['tool_installed'])
+                self.assertFalse((target / '.continuity').exists())
 
     def test_create_yields_a_runnable_environment_without_changing_the_base(self):
         with tempfile.TemporaryDirectory() as scratch:
@@ -48,7 +85,7 @@ class RuntimeEnvironment(unittest.TestCase):
 
     def test_check_reports_the_selected_environment_without_writing_it(self):
         with tempfile.TemporaryDirectory() as scratch:
-            target = Path(scratch).resolve() / 'runtime'
+            target = Path(scratch).resolve() / '中文 café 🚀 runtime'
             created = self.command('create', '--directory', str(target))
             self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
             def snapshot():
@@ -56,48 +93,62 @@ class RuntimeEnvironment(unittest.TestCase):
                             p.readlink().as_posix() if p.is_symlink() else p.read_bytes())
                         for p in target.rglob('*') if p.is_file() or p.is_symlink()}
             before = snapshot()
-            checked = self.command('check', '--directory', str(target))
-            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-            report = json.loads(checked.stdout)
-            self.assertEqual(report['code'], 'RUNTIME_READY')
-            self.assertFalse(report['data']['tool_installation_checked'])
-            self.assertFalse(report['data']['host_configuration_checked'])
-            self.assertEqual(snapshot(), before)
+            for codec in ('cp1252', 'ascii'):
+                with self.subTest(codec=codec):
+                    checked = self.command('check', '--directory', str(target), stdout_encoding=codec)
+                    self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+                    self.assertEqual(checked.stderr, '')
+                    self.assertTrue(checked.stdout.isascii())
+                    report = json.loads(checked.stdout)
+                    self.assertEqual(report['code'], 'RUNTIME_READY')
+                    self.assertEqual(report['data']['directory'], str(target))
+                    self.assertEqual(Path(report['data']['prefix']).resolve(), target)
+                    self.assertFalse(report['data']['tool_installation_checked'])
+                    self.assertFalse(report['data']['host_configuration_checked'])
+                    self.assertEqual(snapshot(), before)
 
     def test_create_refuses_existing_paths_without_replacing_them(self):
         with tempfile.TemporaryDirectory() as scratch:
             base = Path(scratch).resolve()
-            folder = base / 'old environment'
+            folder = base / '中文 café 🚀 old environment'
             folder.mkdir()
             sentinel = folder / 'keep.txt'
             sentinel.write_bytes(b'existing installation and project')
-            existing = base / 'file'
+            existing = base / '中文 file'
             existing.write_bytes(b'do not replace')
             paths = [folder, existing]
             if os.name != 'nt':
-                link = base / 'dangling'
+                link = base / '中文 dangling'
                 link.symlink_to(base / 'absent')
                 paths.append(link)
             for path in paths:
                 with self.subTest(kind=path.name):
                     identity = path.lstat()
-                    refused = self.command('create', '--directory', str(path))
+                    refused = self.command('create', '--directory', str(path), stdout_encoding='ascii')
                     self.assertEqual(refused.returncode, 1, refused.stderr)
+                    self.assertEqual(refused.stderr, '')
+                    self.assertTrue(refused.stdout.isascii())
                     data = json.loads(refused.stdout)
                     self.assertEqual(data['code'], 'TARGET_EXISTS')
+                    self.assertEqual(data['data']['directory'], str(path))
                     self.assertFalse(data['data']['created'])
+                    self.assertFalse(data['data']['partial_environment_retained'])
                     self.assertEqual(path.lstat(), identity)
             self.assertEqual(sentinel.read_bytes(), b'existing installation and project')
             self.assertEqual(existing.read_bytes(), b'do not replace')
 
     def test_check_missing_pip_reports_incomplete_without_installing_it(self):
         with tempfile.TemporaryDirectory() as scratch:
-            target = Path(scratch).resolve() / 'without-pip'
+            target = Path(scratch).resolve() / '中文 café 🚀 without-pip'
             venv.EnvBuilder(with_pip=False, symlinks=os.name != 'nt').create(target)
-            result = self.command('check', '--directory', str(target))
+            result = self.command('check', '--directory', str(target), stdout_encoding='cp1252')
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertEqual(result.stderr, '')
+            self.assertTrue(result.stdout.isascii())
             data = json.loads(result.stdout)
             self.assertEqual(data['code'], 'PIP_UNAVAILABLE')
+            self.assertEqual(data['data']['directory'], str(target))
+            self.assertEqual(Path(data['data']['runtime']['prefix']).resolve(), target)
             self.assertEqual(data['data']['phase'], 'pip_probe')
             self.assertFalse(data['data']['created'])
             self.assertFalse(list(target.rglob('pip-*.dist-info')))

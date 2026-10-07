@@ -29,8 +29,8 @@
     },
     {
       "path": ".github/workflows/verify.yml",
-      "bytes": 22273,
-      "sha256": "1aae42ef840fefc2dcc22d7be5df07a58149ccdb7ec5dce4d0640b7fee2bb588"
+      "bytes": 24383,
+      "sha256": "bd4592c5588fa61059cbe5c783ea8164d81fd38aac60be09b9ed76bbb51d94cc"
     },
     {
       "path": ".gitignore",
@@ -214,8 +214,8 @@
     },
     {
       "path": "docs/platform-validation.md",
-      "bytes": 27992,
-      "sha256": "7c6ead4da1789f31fed0e7d8d4d4a813cbb24bbac2a98fa0a207829f03838c1f"
+      "bytes": 30760,
+      "sha256": "fe46e506bfcd493eac4d661995b697a01a9e62f87b221327b0080cfc1dcc0dc4"
     },
     {
       "path": "docs/project-memory.md",
@@ -329,8 +329,8 @@
     },
     {
       "path": "scripts/runtime_env.py",
-      "bytes": 16906,
-      "sha256": "b9a6e825880d474efcfbc6a62ca0785872e0cd920e8ee892e9dd6703beb96558"
+      "bytes": 17049,
+      "sha256": "0f4e25b1028d449cc9b380171a046d4dc20ee2dc9b6aed1ababef3a31dfdc5e4"
     },
     {
       "path": "scripts/smoke_demo.py",
@@ -369,8 +369,8 @@
     },
     {
       "path": "tests/test_ci_summary.py",
-      "bytes": 3917,
-      "sha256": "dbd925338e10515fd4600912a910fd2a592cc5452d709db2a48ad90d8ee0e3b7"
+      "bytes": 9967,
+      "sha256": "3bdc2b471ced5c4e2a9218ac92bdc4a652a747118d46c0db5347d445916981ff"
     },
     {
       "path": "tests/test_claude_save_hook.py",
@@ -389,8 +389,8 @@
     },
     {
       "path": "tests/test_doctor.py",
-      "bytes": 22866,
-      "sha256": "b1ead64fec818f8c2e3c01bdab90659fd4f8ca4907d987b0275a4cc47b56c398"
+      "bytes": 22945,
+      "sha256": "0f29eadd34135b7208c7ee42a0ede641f9000580abbe305e021779ea874b46d1"
     },
     {
       "path": "tests/test_dsh_adapter.py",
@@ -424,8 +424,8 @@
     },
     {
       "path": "tests/test_entry_integration.py",
-      "bytes": 39993,
-      "sha256": "6b428e3e36d360065609a5e8b3af70005499b182733acd898428f3d8564439c0"
+      "bytes": 40586,
+      "sha256": "9a25df68e1969a1d361fdba7d4d13e3a86b28ceaebc9f1def91c796d692197f4"
     },
     {
       "path": "tests/test_field_lessons.py",
@@ -454,8 +454,8 @@
     },
     {
       "path": "tests/test_installation.py",
-      "bytes": 16073,
-      "sha256": "bb76352b965b86427faf65df60bae25cd0faeaf1978ec35dd9334e4d764acf60"
+      "bytes": 16683,
+      "sha256": "34b9ac343b70751a3c3f4aade9ff3e25f1db41fb193d3be4183843780c22936b"
     },
     {
       "path": "tests/test_managed_control.mjs",
@@ -504,13 +504,13 @@
     },
     {
       "path": "tests/test_runtime_env.py",
-      "bytes": 16895,
-      "sha256": "3fe7a809659443f74f5e1a9a02f15f5a11cfe4439c1fc3c9363289a4811ef5d9"
+      "bytes": 20317,
+      "sha256": "69a7bd577ea4af220fed207a90f82886fea121634d47e277cddbfe8438ae2c5b"
     },
     {
       "path": "tests/test_runtime_install.py",
-      "bytes": 10320,
-      "sha256": "efd31aa58e6548e7d21f4aae354772f66574cc7f42f68d70cad2c2c6328a1e2d"
+      "bytes": 12489,
+      "sha256": "122d22ca4f4b1363bab6dd3dc4b065ffa712b4b8ac0493245970f5a71cf2ced1"
     },
     {
       "path": "tests/test_save_template.py",
@@ -524,8 +524,8 @@
     },
     {
       "path": "tests/test_setup.py",
-      "bytes": 64780,
-      "sha256": "cc45560bd69b853f231a8514c04b34a5e978c9eec95326baad5e235cda49d1ce"
+      "bytes": 65891,
+      "sha256": "a31ef7ab6d05f2fba4116eb18c9d53164bc1ce19199581c1b7d1e33a5e582f13"
     },
     {
       "path": "tests/test_xs_safety.py",

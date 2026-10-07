@@ -280,7 +280,16 @@ with patch('ctypes.CDLL',return_value=Library()), patch('os.unlink',unlink):
                     self.assertEqual(self.snapshot(), before)
 
     def test_loading_notice_preserves_budget_refusal_and_standalone_state(self):
-        self.cli('setup', '--host', 'claude-code', '--write-instructions')
+        if sys.platform not in ('darwin', 'linux'):
+            before = self.snapshot()
+            refused = self.cli('setup', '--host', 'claude-code', '--write-instructions', ok=False)
+            self.assertEqual(refused['code'], 'ENTRY_WRITE_UNSUPPORTED')
+            self.assertEqual(self.snapshot(), before)
+            preview = self.cli('setup', '--host', 'claude-code')['data']['project_entry']
+            # Diagnostic input only, not a claim that automatic writing worked.
+            self.fixture('.claude/rules/recaloom.md', preview['content'].encode('utf-8'))
+        else:
+            self.cli('setup', '--host', 'claude-code', '--write-instructions')
         standalone = self.cli('entry', 'status', '--host', 'claude-code')['data']
         self.assertNotIn('loading_notice', standalone)
         self.assertFalse(standalone['host_loading_verified'])

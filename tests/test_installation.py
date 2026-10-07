@@ -113,11 +113,19 @@ class Installation(unittest.TestCase):
             binaries = runtime / ('Scripts' if os.name == 'nt' else 'bin')
             python = binaries / ('python.exe' if os.name == 'nt' else 'python')
             cli = binaries / ('glom-continuity.exe' if os.name == 'nt' else 'glom-continuity')
+            # ensurepip on older Python can preinstall a build backend. Prove
+            # backend-free installation and use, not the bootstrapper's defaults.
+            # This is only our test-owned target, never the caller's environment.
+            self.command([sys.executable, '-m', 'pip', '--python', str(python),
+                          'uninstall', '-y', 'setuptools', 'wheel'], base)
+            backend_absent = ('import importlib.util; '
+                              'assert importlib.util.find_spec("setuptools") is None; '
+                              'assert importlib.util.find_spec("wheel") is None')
+            self.command([str(python), '-I', '-c', backend_absent], base)
             self.command([sys.executable, '-m', 'pip', '--python', str(python), 'install',
                           '--no-index', '--no-deps', str(artifacts[0])], base)
             shutil.rmtree(source)  # Test-owned staging tree: runtime must not borrow its files.
-            self.command([str(python), '-c', 'import importlib.util; '
-                          'assert importlib.util.find_spec("setuptools") is None'], base)
+            self.command([str(python), '-I', '-c', backend_absent], base)
             version = self.command([str(cli), '--version'], base).stdout.strip()
             self.assertRegex(version, r'^0\.1\.0(?:(?:-alpha\.|a|\.dev|rc)[0-9]+)?$')
             self.assertEqual(self.command([str(python), '-m', 'glom_continuity', '--version'], base).stdout.strip(), version)

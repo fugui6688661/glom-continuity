@@ -32,6 +32,24 @@ class Setup(unittest.TestCase):
         return self.command([sys.executable, '-B', str(ROOT / 'scripts/continuity.py'),
                              '--project', str(self.project), *args], ok=ok)
 
+    def test_generated_entry_line_endings_are_bytes_not_platform_text(self):
+        self.cli('init', '--name', 'Exact managed entry')
+        preview = self.cli('setup', '--host', 'codex')['data']['project_entry']
+        active = self.project / 'AGENTS.md'
+        content = preview['content'].encode('utf-8')
+        active.write_bytes(content)
+        self.assertEqual(self.cli('entry', 'status', '--host', 'codex')['data']['state'], 'active')
+        self.assertEqual(active.read_bytes(), content)
+        # Text-mode fixture writes on Windows used to alter the approved bytes.
+        # This is an edited entry, not permission to silently normalize a rule.
+        transformed = content.replace(b'\n', b'\r\n')
+        active.write_bytes(transformed)
+        refused = self.cli('entry', 'status', '--host', 'codex', ok=False)
+        self.assertEqual(refused['code'], 'ENTRY_UNRECOGNIZED')
+        self.assertEqual(active.read_bytes(), transformed)
+        active.write_bytes(content)
+        self.assertEqual(self.cli('entry', 'status', '--host', 'codex')['data']['state'], 'active')
+
     def test_one_command_returns_real_bound_recovery_without_host_claim(self):
         initial = self.cli('init', '--name', 'An existing project')['data']
         draft = self.project / 'draft.json'
@@ -76,7 +94,7 @@ class Setup(unittest.TestCase):
         (old_root / 'skills/project-continuity/SKILL.md').write_text('Synthetic old guide', encoding='utf-8')
         old_prefix = [sys.executable, '-B', str(old_program), '--project', str(self.project)]
         old_rule = self.command(old_prefix + ['setup', '--host', 'codex'])['data']['project_entry']
-        (self.project / 'AGENTS.md').write_text(old_rule['content'], encoding='utf-8')
+        (self.project / 'AGENTS.md').write_bytes((old_rule['content']).encode('utf-8'))
         before = {str(p.relative_to(self.project)): p.read_bytes() for p in self.project.rglob('*') if p.is_file()}
         preview = self.cli('entry', 'upgrade', '--host', 'codex')['data']
         self.assertTrue(preview['read_only'])
@@ -115,7 +133,7 @@ class Setup(unittest.TestCase):
                     active = self.project / relative
                     active.parent.mkdir(parents=True, exist_ok=True)
                     selected = active if state == 'active' else active.with_name('.recaloom-' + host + '.paused')
-                    selected.write_text(old_rule['content'], encoding='utf-8')
+                    selected.write_bytes((old_rule['content']).encode('utf-8'))
                     database = self.project / '.continuity/state.sqlite3'
                     original = database.read_bytes()
                     preview = self.cli('entry', 'upgrade', '--host', host)['data']['upgrade']
@@ -149,7 +167,7 @@ class Setup(unittest.TestCase):
         self.cli('init', '--name', 'Reviewed upgrade only')
         rule = self.cli('setup', '--host', 'codex')['data']['project_entry']
         active = self.project / 'AGENTS.md'
-        active.write_text(rule['content'], encoding='utf-8')
+        active.write_bytes((rule['content']).encode('utf-8'))
         preview = self.cli('entry', 'upgrade', '--host', 'codex')['data']['upgrade']
         before = {str(p): p.read_bytes() for p in self.project.rglob('*') if p.is_file()}
         for flags, code in [([], 'ENTRY_EXPECTATION_REQUIRED'),
@@ -167,7 +185,7 @@ class Setup(unittest.TestCase):
         self.cli('checkpoint', '--from-file', str(draft), '--expect-revision', '0')
         self.assertEqual(self.cli('entry', 'upgrade', '--host', 'codex', '--apply', '--expect-state', 'active',
             '--expect-sha256', preview['old_sha256'], '--expect-new-sha256', preview['new_sha256'], ok=False)['code'], 'ENTRY_CHANGED')
-        active.write_text(rule['content'] + '\nMy personal rule.\n', encoding='utf-8')
+        active.write_bytes((rule['content'] + '\nMy personal rule.\n').encode('utf-8'))
         self.assertEqual(self.cli('entry', 'upgrade', '--host', 'codex', ok=False)['code'], 'ENTRY_UNRECOGNIZED')
         self.assertTrue(active.read_text().endswith('My personal rule.\n'))
         self.assertEqual(list(self.project.glob('.recaloom-*.upgrade-*')), [])
@@ -176,7 +194,7 @@ class Setup(unittest.TestCase):
         self.cli('init', '--name', 'Upgrade write failure')
         old = self.cli('setup', '--host', 'codex')['data']['project_entry']
         active = self.project / 'AGENTS.md'
-        active.write_text(old['content'], encoding='utf-8')
+        active.write_bytes((old['content']).encode('utf-8'))
         draft = self.project / 'draft.json'
         draft.write_text(json.dumps(dict(objective='New checkpoint', next_action='Review', constraints=[],
                                          decisions=[], unresolved=[], evidence=[])), encoding='utf-8')
@@ -208,7 +226,7 @@ class Setup(unittest.TestCase):
         self.cli('init', '--name', 'Respect a later pause')
         old = self.cli('setup', '--host', 'codex')['data']['project_entry']
         active = self.project / 'AGENTS.md'
-        active.write_text(old['content'], encoding='utf-8')
+        active.write_bytes((old['content']).encode('utf-8'))
         preview = self.cli('entry', 'upgrade', '--host', 'codex')['data']
         paused = self.project / '.recaloom-codex.paused'
         active.rename(paused)  # External user pause of our owned fixture after preview.
@@ -223,7 +241,7 @@ class Setup(unittest.TestCase):
         self.cli('init', '--name', 'Concurrent editor')
         old = self.cli('setup', '--host', 'codex')['data']['project_entry']
         active = self.project / 'AGENTS.md'
-        active.write_text(old['content'], encoding='utf-8')
+        active.write_bytes((old['content']).encode('utf-8'))
         draft = self.project / 'draft.json'
         draft.write_text(json.dumps(dict(objective='Changed checkpoint', next_action='Review', constraints=[],
                                          decisions=[], unresolved=[], evidence=[])), encoding='utf-8')
@@ -262,7 +280,7 @@ with patch('os.fsync',concurrent_edit):
                 self.cli('init', '--name', 'Failure observations')
                 old = self.cli('setup', '--host', 'codex')['data']['project_entry']
                 active = self.project / 'AGENTS.md'
-                active.write_text(old['content'], encoding='utf-8')
+                active.write_bytes((old['content']).encode('utf-8'))
                 draft = self.project / 'draft.json'
                 draft.write_text(json.dumps(dict(objective='New checkpoint', next_action='Review',
                     constraints=[], decisions=[], unresolved=[], evidence=[])), encoding='utf-8')
@@ -356,7 +374,7 @@ with patch('ctypes.CDLL',return_value=Library()), patch('os.fsync',sync), patch(
         self.cli('init', '--name', 'Concurrent upgrade')
         old = self.cli('setup', '--host', 'codex')['data']['project_entry']
         active = self.project / 'AGENTS.md'
-        active.write_text(old['content'], encoding='utf-8')
+        active.write_bytes((old['content']).encode('utf-8'))
         draft = self.project / 'draft.json'
         draft.write_text(json.dumps(dict(objective='Changed checkpoint', next_action='Review', constraints=[],
                                          decisions=[], unresolved=[], evidence=[])), encoding='utf-8')
@@ -657,7 +675,7 @@ with patch('os.unlink', deny_cleanup), patch('os.supports_dir_fd', os.supports_d
         self.cli('init', '--name', 'Entry lifecycle')
         if os.name != 'posix':
             preview = self.cli('setup', '--host', 'codex')['data']
-            (self.project / 'AGENTS.md').write_text(preview['project_entry']['content'], encoding='utf-8')
+            (self.project / 'AGENTS.md').write_bytes((preview['project_entry']['content']).encode('utf-8'))
         else:
             self.cli('setup', '--host', 'codex', '--write-instructions')
         status = self.cli('entry', 'status', '--host', 'codex')['data']
@@ -679,7 +697,7 @@ with patch('os.unlink', deny_cleanup), patch('os.supports_dir_fd', os.supports_d
                 preview = self.cli('setup', '--host', host)['data']
                 active = self.project / relative
                 active.parent.mkdir(parents=True, exist_ok=True)
-                active.write_text(preview['project_entry']['content'], encoding='utf-8')
+                active.write_bytes((preview['project_entry']['content']).encode('utf-8'))
                 original = active.read_bytes()
                 expected = hashlib.sha256(original).hexdigest()
                 if sys.platform not in ('darwin', 'linux'):
@@ -720,7 +738,7 @@ with patch('os.unlink', deny_cleanup), patch('os.supports_dir_fd', os.supports_d
                 active = self.project / relative
                 active.parent.mkdir(parents=True, exist_ok=True)
                 paused = active.parent / ('.recaloom-' + host + '.paused')
-                paused.write_text(preview, encoding='utf-8')
+                paused.write_bytes((preview).encode('utf-8'))
                 for options in [[], ['--write-instructions']]:
                     refused = self.cli('setup', '--host', host, *options, ok=False)
                     self.assertEqual(refused['code'], 'ENTRY_PAUSED')
@@ -731,7 +749,7 @@ with patch('os.unlink', deny_cleanup), patch('os.supports_dir_fd', os.supports_d
         self.cli('init', '--name', 'No unreviewed changes')
         content = self.cli('setup', '--host', 'codex')['data']['project_entry']['content']
         active = self.project / 'AGENTS.md'
-        active.write_text(content, encoding='utf-8')
+        active.write_bytes((content).encode('utf-8'))
         expected = hashlib.sha256(active.read_bytes()).hexdigest()
         cases = [([], 'ENTRY_EXPECTATION_REQUIRED'),
                  (['--expect-sha256', 'not-a-digest'], 'ENTRY_EXPECTATION_REQUIRED'),
@@ -752,7 +770,7 @@ with patch('os.unlink', deny_cleanup), patch('os.supports_dir_fd', os.supports_d
         self.cli('init', '--name', 'Bound rule only')
         content = self.cli('setup', '--host', 'codex')['data']['project_entry']['content']
         active = self.project / 'AGENTS.md'
-        active.write_text(content, encoding='utf-8')
+        active.write_bytes((content).encode('utf-8'))
         expected = hashlib.sha256(active.read_bytes()).hexdigest()
         other = Path(self.temp.name) / 'copied-project'
         shutil.copytree(self.project, other)
@@ -775,7 +793,7 @@ with patch('os.unlink', deny_cleanup), patch('os.supports_dir_fd', os.supports_d
         preview = self.cli('setup', '--host', 'codex')['data']
         content = preview['project_entry']['content'].replace(preview['binding']['program_sha256'], '0' * 64)
         active = self.project / 'AGENTS.md'
-        active.write_text(content, encoding='utf-8')
+        active.write_bytes((content).encode('utf-8'))
         expected = hashlib.sha256(active.read_bytes()).hexdigest()
         self.assertFalse(self.cli('entry', 'status', '--host', 'codex')['data']['runtime_binding_matches'])
         if sys.platform not in ('darwin', 'linux'):
@@ -829,7 +847,7 @@ with patch('ctypes.CDLL', return_value=types.SimpleNamespace(**{name: injected})
                 self.command(prefix + ['init', '--name', mode])
                 content = self.command(prefix + ['setup', '--host', 'codex'])['data']['project_entry']['content']
                 active, paused = selected / 'AGENTS.md', selected / '.recaloom-codex.paused'
-                active.write_text(content, encoding='utf-8')
+                active.write_bytes((content).encode('utf-8'))
                 expected = hashlib.sha256(active.read_bytes()).hexdigest()
                 result = self.command([sys.executable, '-I', '-B', '-c', script, mode, *prefix[2:],
                     'entry', 'pause', '--host', 'codex', '--expect-sha256', expected], ok=mode != 'collision')
@@ -861,7 +879,7 @@ with patch('ctypes.CDLL', return_value=types.SimpleNamespace(**{name: injected})
         self.cli('init', '--name', 'Competing pause')
         content = self.cli('setup', '--host', 'codex')['data']['project_entry']['content']
         active = self.project / 'AGENTS.md'
-        active.write_text(content, encoding='utf-8')
+        active.write_bytes((content).encode('utf-8'))
         expected = hashlib.sha256(active.read_bytes()).hexdigest()
         argv = [sys.executable, '-B', str(ROOT / 'scripts/continuity.py'), '--project', str(self.project),
                 'entry', 'pause', '--host', 'codex', '--expect-sha256', expected]
@@ -908,7 +926,7 @@ with patch('ctypes.CDLL', return_value=types.SimpleNamespace(**{name: injected})
                 content = self.cli('setup', '--host', host)['data']['project_entry']['content']
                 active = self.project / relative
                 active.parent.mkdir(parents=True, exist_ok=True)
-                active.write_text(content, encoding='utf-8')
+                active.write_bytes((content).encode('utf-8'))
                 alias = self.project / ('retained-' + host)
                 os.link(active, alias)
                 expected = hashlib.sha256(active.read_bytes()).hexdigest()
@@ -931,7 +949,7 @@ with patch('ctypes.CDLL', return_value=types.SimpleNamespace(**{name: injected})
         content = self.cli('setup', '--host', 'claude-code')['data']['project_entry']['content']
         active = self.project / '.claude/rules/recaloom.md'
         active.parent.mkdir(parents=True)
-        active.write_text(content, encoding='utf-8')
+        active.write_bytes((content).encode('utf-8'))
         expected = hashlib.sha256(active.read_bytes()).hexdigest()
         script = r'''
 import ctypes, pathlib, runpy, sys, types

@@ -80,6 +80,7 @@ jobs:
               return owner if owner.endswith('.' + method) else owner + '.' + method
 
           def test_progress(stderr):
+              # Counts recognizable verbose lines, not unique tests or final coverage.
               # Progress is not a verdict. Never retain free-form diagnostics,
               # fixture values, skip reasons, command lines or raw partial logs.
               if isinstance(stderr, bytes):
@@ -160,6 +161,29 @@ jobs:
                   'test_bundle_file_links_are_not_followed',
                   'test_partial_installation_is_not_repaired_or_reported_ready',
                   'test_preflight_does_not_run_selected_sdk_code')})
+              # Existing product POSIX-only boundary, not a class-wide exemption.
+              # New methods/reasons require review and remain unexpected skips.
+              permitted.update({'test_host_diagnostics.HostDiagnostics.' + name:
+                  ('Managed homes currently support POSIX only', 'managed_host_posix_only') for name in (
+                  'test_unconfirmed_pause_receipt_keeps_diagnostic_and_live_ownership',
+                  'test_interrupt_refusals_include_diagnostic_without_releasing_child_ownership',
+                  'test_malformed_control_replies_are_bounded_diagnosed_and_never_echoed',
+                  'test_invalid_control_object_cannot_claim_state_or_authorize_stop',
+                  'test_reachable_starting_control_explains_wait_without_claiming_running',
+                  'test_stop_timeout_includes_diagnostic_and_retains_live_ownership',
+                  'test_interrupt_timeouts_keep_diagnostic_before_and_after_stop_acknowledgement',
+                  'test_interrupt_malformed_control_is_bounded_and_keeps_diagnostic',
+                  'test_unavailable_diagnostic_cannot_bypass_pause_refusal',
+                  'test_corrupt_run_identity_keeps_control_and_interrupt_failures_diagnosed',
+                  'test_failed_child_exit_is_explained_after_restart_without_recording_output',
+                  'test_fixture_retains_home_after_launcher_exit_while_child_owns_lock',
+                  'test_unconfirmed_control_explains_last_observation_without_ready_or_force_stop',
+                  'test_os_spawn_refusal_is_not_misreported_as_a_child_exit',
+                  'test_unsafe_diagnostic_destination_refuses_before_spawning',
+                  'test_wrong_run_control_is_explained_without_stopping_or_claiming_ready',
+                  'test_verified_control_and_persistent_pause_still_govern_normal_stop',
+                  'test_stale_or_extra_diagnostic_fields_are_unavailable_not_echoed',
+                  'test_signal_termination_is_not_an_exit_code')})
               skipped = []
               for method, owner, reason in re.findall(
                       r'^([A-Za-z0-9_]+) \(([A-Za-z0-9_.]+)\) \.\.\. skipped (.*)$', stderr, re.M):

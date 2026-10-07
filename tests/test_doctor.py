@@ -24,7 +24,7 @@ class Doctor(unittest.TestCase):
             for action in ('integrate', 'status'):
                 with self.subTest(host=host, action=action):
                     if action == 'status':
-                        path.write_text(full['upgrade']['content'], encoding='utf-8')
+                        path.write_bytes((full['upgrade']['content']).encode('utf-8'))
                     before = self.snapshot()
                     result = self.cli('entry', action, '--host', host, '--max-chars', '1000', ok=False)
                     self.assertEqual(result['code'], 'BUDGET_TOO_SMALL')
@@ -93,7 +93,7 @@ class Doctor(unittest.TestCase):
         self.assertFalse(preview['host_loading_verified'])
         self.assertEqual(self.snapshot(), before)
         # Diagnostic fixture only; no native host is launched.
-        path.write_text(content, encoding='utf-8')
+        path.write_bytes((content).encode('utf-8'))
         before = self.snapshot()
         for command in (('doctor', '--host', 'workbuddy'), ('entry', 'status', '--host', 'workbuddy')):
             data = self.cli(*command)['data']
@@ -158,7 +158,7 @@ class Doctor(unittest.TestCase):
         self.assertEqual(notice['document_bytes'], len(preview['upgrade']['content'].encode('utf-8')))
         self.assertNotIn('界', json.dumps(notice, ensure_ascii=False))
         # Use the public preview as diagnostic input; this is not a native-host run.
-        path.write_text(preview['upgrade']['content'], encoding='utf-8')
+        path.write_bytes((preview['upgrade']['content']).encode('utf-8'))
         before = self.snapshot()
         diagnosis = self.cli('doctor', '--host', 'codex')['data']['host_entry']
         status = self.cli('entry', 'status', '--host', 'codex')['data']
@@ -215,7 +215,7 @@ class Doctor(unittest.TestCase):
         path = self.project / 'AGENTS.md'
         original = path.read_text()
         project_id = self.cli('status')['data']['project_id']
-        path.write_text(original.replace(project_id, '00000000-0000-0000-0000-000000000000'))
+        path.write_bytes((original.replace(project_id, '00000000-0000-0000-0000-000000000000')).encode('utf-8'))
         before = self.snapshot()
         data = self.cli('doctor', '--host', 'codex')['data']
         self.assertEqual(data['host_entry']['issue']['code'], 'PROJECT_MISMATCH')
@@ -255,14 +255,14 @@ class Doctor(unittest.TestCase):
         path = self.project / 'AGENTS.md'
         original = path.read_text()
         program_hash = self.cli('doctor')['data']['runtime']['program_sha256']
-        path.write_text(original.replace(program_hash, '0' * 64))
+        path.write_bytes((original.replace(program_hash, '0' * 64)).encode('utf-8'))
         before = self.snapshot()
         mismatched = self.cli('doctor', '--host', 'codex')['data']['host_entry']
         self.assertFalse(mismatched['runtime_binding_matches'])
         self.assertIn('binding', mismatched['next_step'])
         self.assertNotIn('fresh session', mismatched['next_step'])
         self.assertEqual(self.snapshot(), before)
-        path.write_text(original)
+        path.write_bytes((original).encode('utf-8'))
         (self.project / 'AGENTS.override.md').write_text('Higher priority user rule\n')
         before = self.snapshot()
         shadowed = self.cli('doctor', '--host', 'codex')['data']['host_entry']
@@ -273,7 +273,7 @@ class Doctor(unittest.TestCase):
     def test_host_diagnosis_keeps_runtime_details_and_preserves_unknown_rule(self):
         self.cli('init', '--name', 'Keep user rules')
         content = 'PRIVATE_SYNTHETIC_RULE_DO_NOT_ECHO\n'
-        (self.project / 'AGENTS.md').write_text(content)
+        (self.project / 'AGENTS.md').write_bytes((content).encode('utf-8'))
         before = self.snapshot()
         data = self.cli('doctor', '--host', 'codex')['data']
         self.assertEqual(data['product_id'], 'glom-continuity')

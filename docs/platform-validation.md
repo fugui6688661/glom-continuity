@@ -9,8 +9,42 @@
 XS 的本地固定前序候选包含338项portable测试，完整执行观察为325.768秒。
 整套执行预算改为有界900秒、外层job20分钟，为更多安装/进程用例留出容量；
 这不是产品性能承诺，也不延长单项测试或真实宿主就绪期限，不删除任何断言或扩大跳过范围。
-若再次超时，只保留测试ID、已开始/结束数量和白名单结果计数，不上传原始输出或异常内容。
+若再次超时，只保留可识别测试ID、开始/结束行数和白名单结果行计数，不上传原始输出或异常内容。
 进度仅帮助定位，超时仍失败；是否有阻塞或平台缺陷须由新跑次判断，不能把这次预算调整当作已修复证明。
+
+`progress.started` 只计符合既定 verbose 格式的行；`completed` 只计这些行上紧随
+`... ` 的 `ok`、`FAIL`、`ERROR`、`skipped` 结果，`last_started` 是最后一条可识别行的 ID。
+它们不是去重后的测试开始/结束数，也不是最终覆盖计数。测试 docstring 换行、交错日志、
+子测试或截断输出都可能使行计数与实际执行数不同；例如最终 `Ran 3 tests` 时，
+progress 仍可能只识别 2 条开始行和 1 条结果行。不能用它们计算通过率、补齐缺失的总结或认证覆盖。
+最终执行计数取 unittest 的 `Ran N tests`，失败/跳过等计数取最终总结，并继续核对测试清单、
+精确 skip 分类和各必需阶段；缺总结、超时或失败不能凭 progress 转绿。
+
+## 2026-10-07：XS Windows 受管宿主的预声明边界
+
+固定候选 `4b339b913495db578e904582d9857220888d11f3` 的第二轮
+[37550892581](https://github.com/fugui6688661/glom-continuity/actions/runs/37550892581)
+Windows 摘要报告 42 项 skip，其中 19 项 `test_host_diagnostics.HostDiagnostics`
+未被原摘要分类。该类原有 decorator 理由为 `Managed homes currently support POSIX only`：
+这是既有产品 POSIX-only 边界，不是本次为消除失败新增的 skip。
+
+本次仅在完整 module/class/method ID、Windows 平台和上述原理由全部匹配时，
+将这 19 个方法逐一分类为 `managed_host_posix_only`。workflow 固定列出全部方法，
+摘要合同测试以真实测试文件 AST 核对恰好 19 个声明及原 decorator；不按整个类或名称前缀放行，
+新增方法、改名或理由变化都须重新审阅。没有改测试 decorator、执行清单或原有用例断言。
+
+| 当前精确分类范围 | 数量 | Windows 验证含义 |
+| --- | --- | --- |
+| 原有 POSIX 限制：FIFO 2、权限 4、SIGKILL 2、符号链接 1、私有目录安装器 13 | 22 | 对应平台能力未验证，不是通过 |
+| 运行时 POSIX 进程组清理 | 1 | Windows 进程树清理未验证 |
+| POSIX-only 受管宿主诊断 | 19 | Windows 缺少受支持的受管宿主能力，不能宣称全链路已验收 |
+| 合计 | 42 | 预声明的平台未验证项，不是 42 项全过 |
+
+Linux/macOS 的同名 skip、任一新方法/改理由、全 skip、MCP SDK 缺失、未知 skip、
+失败及不完整总结仍拒绝；必须有实际执行，且所有必需阶段通过，才可能得到
+`passed_with_platform_skips`，不能标作全部通过。Required Harness 的 macOS 成绩不补足 Windows
+受管宿主缺口；修正分类也不改写第二轮的实际失败结果，不抵消该轮其他失败。
+本机摘要合同红→绿仅证明分类逻辑，未重跑托管 CI，也不证明 Windows 功能通过。
 
 ## XS 发行前检查：平台限定的清理用例
 

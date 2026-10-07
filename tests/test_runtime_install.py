@@ -27,15 +27,24 @@ class RuntimeInstall(unittest.TestCase):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, dest)
         build = subprocess.run([sys.executable, '-I', '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps',
-                                '--no-build-isolation', '--disable-pip-version-check', '--wheel-dir', str(base / 'wheels'),
+                                '--no-build-isolation', '--no-cache-dir', '--disable-pip-version-check', '--wheel-dir', str(base / 'wheels'),
                                 str(source)], capture_output=True, text=True, timeout=90)
         if build.returncode:
             raise AssertionError(build.stdout + build.stderr)
         cls.wheel, = (base / 'wheels').glob('*.whl')
         cls.wheel_sha256 = hashlib.sha256(cls.wheel.read_bytes()).hexdigest()
 
-    def command(self, *args):
-        return subprocess.run([sys.executable, '-I', '-B', str(CLI), *args],
+    def command(self, *args, stdout_encoding=None):
+        entry = [str(CLI)]
+        if stdout_encoding is not None:
+            # Change only the output boundary; -I ignores encoding env vars.
+            wrapper = '''import runpy, sys
+sys.stdout.reconfigure(encoding=sys.argv.pop(1), errors='strict')
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name='__main__')
+'''
+            entry = ['-c', wrapper, stdout_encoding, str(CLI)]
+        return subprocess.run([sys.executable, '-I', '-B', *entry, *args],
                               capture_output=True, text=True, timeout=90)
 
     def test_wrong_wheel_digest_is_rejected_before_creating_environment(self):
@@ -57,18 +66,25 @@ class RuntimeInstall(unittest.TestCase):
     def test_one_command_installs_the_selected_wheel_and_returns_a_working_prefix(self):
         with tempfile.TemporaryDirectory(prefix='recaloom-install-') as scratch:
             base = Path(scratch).resolve()
-            target = base / '中文 environment'
+            target = base / '中文 café 🚀 environment'
             project = base / 'untouched project'
             project.mkdir()
             (project / 'AGENTS.md').write_bytes(b'Existing personal project instructions.\n')
             (project / 'glom_continuity.py').write_text('raise SystemExit(42)\n')
             before = {p.name: p.read_bytes() for p in project.iterdir()}
             result = self.command('create', '--directory', str(target),
-                                  '--wheel', str(self.wheel), '--sha256', self.wheel_sha256)
+                                  '--wheel', str(self.wheel), '--sha256', self.wheel_sha256,
+                                  stdout_encoding='cp1252')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(result.stderr, '')
+            self.assertTrue(result.stdout.isascii())
             response = json.loads(result.stdout)
             self.assertEqual(response['code'], 'TOOL_READY')
             data = response['data']
+            self.assertEqual(data['directory'], str(target))
+            self.assertEqual(Path(data['prefix']).resolve(), target)
+            self.assertEqual(data['python_executable'],
+                             str(target / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')))
             self.assertTrue(data['tool_installed'])
             self.assertFalse(data['host_integrated'])
             self.assertEqual(data['wheel_sha256'], self.wheel_sha256)
@@ -88,6 +104,21 @@ class RuntimeInstall(unittest.TestCase):
             self.assertEqual(help_result.returncode, 0, help_result.stderr)
             self.assertIn('--wheel', help_result.stdout)
             self.assertIn('--sha256', help_result.stdout)
+            # This installed console entry has no -I flag: constrain its actual
+            # inherited stream without changing machine/user configuration.
+            env = {key: os.environ[key] for key in ('PATH', 'SystemRoot', 'WINDIR') if key in os.environ}
+            env.update(PYTHONIOENCODING='ascii:strict', PYTHONDONTWRITEBYTECODE='1', PIP_CONFIG_FILE=os.devnull)
+            installed_check = subprocess.run([str(installer), 'check', '--directory', str(target)],
+                                             cwd=project, env=env, capture_output=True, text=True, timeout=20)
+            self.assertEqual(installed_check.returncode, 0, installed_check.stdout + installed_check.stderr)
+            self.assertEqual(installed_check.stderr, '')
+            self.assertTrue(installed_check.stdout.isascii())
+            installed_report = json.loads(installed_check.stdout)
+            self.assertEqual(installed_report['code'], 'RUNTIME_READY')
+            self.assertEqual(installed_report['data']['directory'], str(target))
+            self.assertEqual(Path(installed_report['data']['prefix']).resolve(), target)
+            self.assertEqual({p.name: p.read_bytes() for p in project.iterdir()}, before)
+            self.assertFalse((target / '.continuity').exists())
 
     def test_incomplete_pair_and_invalid_digest_have_no_side_effects(self):
         with tempfile.TemporaryDirectory(prefix='recaloom-install-') as scratch:
