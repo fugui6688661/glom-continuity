@@ -33,7 +33,7 @@ Queue selection is an observation, not a lock on future proposals. The core rech
 
 Only the JSON fields `session_id`, `cwd` and `hook_event_name` are used for routing. All fields count toward the 256 KiB input cap. Duplicate keys, malformed input, wrong scope and unsupported events fail without a core write. `transcript_path`, response text and tool output are never read as files or converted into memory. Input fields and local session labels are not authenticated identities; an equally privileged local process remains outside this cooperative boundary.
 
-The adapter never enables policy, prepares a new candidate, invents an operation ID, accepts a handoff, runs a model, or reports semantic task completion. It emits only a short status after a save. A core reference/revision/policy failure is visible as a non-blocking hook error (exit 1), never exit 2 that asks Claude to keep responding. No automatic retry or policy recreation is performed.
+The adapter never enables policy, prepares a new candidate, invents an operation ID, accepts a handoff, runs a model, or reports semantic task completion. It emits a short status after a save. Host/event output handling determines whether that status or an error is displayed; do not promise a visible receipt for every event, particularly compaction and exit. Inspect the candidate with `save show`, policy with `save-policy status`, and current progress with `resume` when the outcome is unclear. A core reference/revision/policy failure returns a non-blocking hook error (exit 1), never exit 2 that asks Claude to keep responding. No automatic retry or policy recreation is performed.
 
 ## Pause, failures and uninstall
 

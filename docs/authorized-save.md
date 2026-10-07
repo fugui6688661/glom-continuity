@@ -30,6 +30,12 @@ This is recorded data, not permission or a proposed new result. The assistant mu
 
 The combined baseline is also checked for memory IDs shared across inherited documents and for the 128 KiB draft limit using compact UTF-8 JSON plus a newline. A larger response budget does not bypass that draft limit. When writing the six fields, use compact UTF-8 JSON (`ensure_ascii=False, separators=(',', ':')` in Python); added formatting, escaping or later edits can still make a file too large. Save revalidates it. Do not delete a dependency or a real constraint merely to fit.
 
+### Keep project work separate from save mechanics
+
+The next session needs the remaining project work, including blockers and durable authorization limits. It usually does not need to repeat the current caller's prepare/commit choreography. For example, after reviewing a design, `next_action` might be “review the two unresolved layout options with the user”; an instruction to this caller to “prepare once, then wait for the controller” belongs in its operation note, not as an unconditional next step for all future sessions. A prepared candidate is not yet saved, so describe observed save state accurately in that note and use the core receipt to reconcile it.
+
+Do not remove real user requirements to tidy a draft. An ongoing no-contact rule stays a constraint; a project to diagnose an interrupted save legitimately retains that unresolved recovery task. Distinguish the instruction's scope and lifetime, rather than filtering words such as “prepare” or “commit.” Review `next_action` from the perspective of a fresh assistant after this candidate has been saved. The core validates structure, revisions and references; it does not make this semantic distinction for the author or correct existing prose automatically.
+
 ### Retain one operation identity
 
 Before the first `prepare`, keep a small project-local operation note containing the project ID, session, generation, base revision, draft path and one chosen operation ID. Create that note once for the reviewed work milestone; retain the returned candidate ID alongside it when available. These labels are not credentials or permission. Never create a fresh operation merely because a reply, hook event or process exit was missed.
