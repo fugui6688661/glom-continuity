@@ -1,9 +1,14 @@
 """Check the published workflow's summary contract, not Windows execution."""
 import ast
+from copy import deepcopy
 from pathlib import Path
 import re
+import subprocess
+import sys
 import textwrap
+import time
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +20,68 @@ HOST_REASON = 'Managed homes currently support POSIX only'
 
 
 class WorkflowSummary(unittest.TestCase):
+    def test_dependency_diagnostic_exposes_only_observed_allowlisted_signals(self):
+        summarize = self.contract()['dependency_diagnostic']
+        samples = {
+            'timeout_text': 'ReadTimeoutError: PRIVATE_HOST timed out',
+            'tls_text': 'SSLCertVerificationError: PRIVATE_CERT',
+            'connection_text': 'NewConnectionError: PRIVATE_URL',
+            'resolution_text': 'ResolutionImpossible: PRIVATE_PACKAGE',
+            'distribution_text': 'No matching distribution found for PRIVATE_PACKAGE',
+            'storage_text': '[Errno 28] No space left on device: PRIVATE_PATH',
+            'permission_text': '[Errno 13] Permission denied: PRIVATE_PATH',
+            'hash_text': 'THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE',
+        }
+        for code, message in samples.items():
+            for value in (message, message.encode()):
+                with self.subTest(code=code, binary=isinstance(value, bytes)):
+                    report = summarize('PRIVATE_STDOUT', value)
+                    self.assertEqual(report, {'signals_observed': [code], 'root_cause': 'unknown',
+                                              'raw_output_retained': False})
+                    self.assertNotIn('PRIVATE', str(report))
+        for output in ('PRIVATE_UNCLASSIFIED', b'PRIVATE\xff', '', None):
+            self.assertEqual(summarize(output, None)['signals_observed'], ['unclassified'])
+        combined = summarize('\n'.join(samples.values()), 'PRIVATE_TOKEN')
+        self.assertEqual(combined['signals_observed'], sorted(samples))
+        self.assertEqual(combined['root_cause'], 'unknown')
+
+    def test_dependency_failure_and_timeout_publish_diagnostics_without_changing_verdict(self):
+        workflow = (ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8')
+        start = workflow.index('          def run_phase(')
+        end = workflow.index('\n          try:', start)
+        code = compile(ast.parse(textwrap.dedent(workflow[start:end])), '<workflow phase>', 'exec')
+        for name, outcome, expected in (
+            ('dependencies', subprocess.CompletedProcess([], 1, 'PRIVATE_STDOUT', 'ReadTimeoutError: PRIVATE'), 'failed'),
+            ('dependencies', subprocess.TimeoutExpired([], 2, b'PRIVATE', b'No space left on device: PRIVATE'), 'timeout'),
+            ('dependencies', subprocess.CompletedProcess([], 0, 'PRIVATE', 'PRIVATE'), 'passed'),
+            ('smoke', subprocess.CompletedProcess([], 1, 'PRIVATE', 'PRIVATE'), 'failed'),
+        ):
+            with self.subTest(name=name, expected=expected):
+                report, saved = {'phases': {}}, []
+                def save():
+                    saved.append(deepcopy(report))
+                namespace = dict(self.contract(), report=report, save_report=save,
+                                 subprocess=subprocess, sys=sys, root=ROOT, child_env={}, time=time)
+                exec(code, namespace)
+                kwargs = {'side_effect': outcome} if isinstance(outcome, Exception) else {'return_value': outcome}
+                # Mock only the external process boundary, not report construction.
+                with patch.object(subprocess, 'run', **kwargs) as child:
+                    result = namespace['run_phase'](name, ['-m', 'pip'], 2)
+                child.assert_called_once()
+                phase = report['phases'][name]
+                self.assertEqual(phase['state'], expected)
+                self.assertEqual(phase['exit_code'], None if expected == 'timeout' else outcome.returncode)
+                self.assertIs(result, None if expected == 'timeout' else outcome)
+                self.assertGreaterEqual(len(saved), 2)
+                self.assertEqual(saved[-1], report)
+                self.assertNotIn('PRIVATE', str(saved))
+                if name == 'dependencies' and expected != 'passed':
+                    self.assertEqual(phase['diagnostic']['root_cause'], 'unknown')
+                    self.assertEqual(phase['diagnostic']['signals_observed'],
+                                     ['storage_text'] if expected == 'timeout' else ['timeout_text'])
+                else:
+                    self.assertNotIn('diagnostic', phase)
+
     def test_failure_summary_keeps_install_stage_codes_not_private_payloads(self):
         summarize = self.contract()['failure_detail']
         codes = ('INVALID_DIRECTORY', 'ENVIRONMENT_IO_ERROR', 'RUNTIME_UNAVAILABLE',

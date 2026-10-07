@@ -79,6 +79,26 @@ jobs:
           def identifier(method, owner):
               return owner if owner.endswith('.' + method) else owner + '.' + method
 
+          def dependency_diagnostic(stdout, stderr):
+              # Text matches are observations, not root-cause attribution. Retain
+              # no raw pip output, URLs, dependency names, paths or exception text.
+              text = '\n'.join(value.decode('utf-8', errors='replace') if isinstance(value, bytes)
+                               else value or '' for value in (stdout, stderr)).lower()
+              signals = {
+                  'timeout_text': ('readtimeouterror', 'connecttimeouterror', 'timed out'),
+                  'tls_text': ('sslcertverificationerror', 'certificate_verify_failed', 'sslerror'),
+                  'connection_text': ('newconnectionerror', 'connection refused', 'network is unreachable',
+                                      'temporary failure in name resolution'),
+                  'resolution_text': ('resolutionimpossible', 'conflicting dependencies'),
+                  'distribution_text': ('no matching distribution found', 'could not find a version that satisfies'),
+                  'storage_text': ('no space left on device', 'disk quota exceeded'),
+                  'permission_text': ('permission denied', 'access is denied'),
+                  'hash_text': ('do not match the hashes', 'hashmismatch'),
+              }
+              return {'signals_observed': sorted(code for code, patterns in signals.items()
+                                                if any(pattern in text for pattern in patterns)) or ['unclassified'],
+                      'root_cause': 'unknown', 'raw_output_retained': False}
+
           def test_progress(stderr):
               # Counts recognizable verbose lines, not unique tests or final coverage.
               # Progress is not a verdict. Never retain free-form diagnostics,
@@ -250,11 +270,15 @@ jobs:
                       errors='replace', timeout=timeout)
                   phase.update(state='passed' if completed.returncode == 0 else 'failed',
                                exit_code=completed.returncode)
+                  if name == 'dependencies' and completed.returncode != 0:
+                      phase['diagnostic'] = dependency_diagnostic(completed.stdout, completed.stderr)
                   return completed
               except subprocess.TimeoutExpired as exc:
                   phase.update(state='timeout', exit_code=None)
                   if name == 'unittest':
                       phase['progress'] = test_progress(exc.stderr)
+                  elif name == 'dependencies':
+                      phase['diagnostic'] = dependency_diagnostic(exc.stdout, exc.stderr)
                   return None
               finally:
                   phase['seconds'] = round(time.monotonic() - started, 2)
