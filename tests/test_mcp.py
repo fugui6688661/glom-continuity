@@ -290,8 +290,8 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertGreater(budget, 3500)
             larger = await client.call_tool('continuity_context', {'max_chars': budget})
             self.assertFalse(larger.is_error)
-            encoded = json.dumps(larger.model_dump(by_alias=True, exclude_unset=True), ensure_ascii=False, separators=(',', ':'))
-            self.assertLessEqual(len(encoded) + 1, budget)
+            # The high-level client adds defaults after receiving the frame.
+            # Exact transport sizing is checked by the raw peer regression.
             self.assertIn('Do not delete', larger.structured_content['data']['text'])
 
     async def test_readonly_context_recalls_task_matched_workflow_with_its_full_budget(self):

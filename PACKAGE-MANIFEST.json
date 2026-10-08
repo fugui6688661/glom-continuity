@@ -471,13 +471,13 @@
     },
     {
       "path": "tests/test_mcp.py",
-      "bytes": 24833,
-      "sha256": "0694b2fafb98ef88ca211ab6fba9b9eaec6b81b60e47eb19c160d9a042add189"
+      "bytes": 24797,
+      "sha256": "1be2185b7cc49724d19703b7905a458ba77b0defb66710fb3a27785fb8d43440"
     },
     {
       "path": "tests/test_mcp_independent.py",
-      "bytes": 41593,
-      "sha256": "54408cccc25ec98e57166b8dbb5d948c2e311b999e462219a290596bbdb75909"
+      "bytes": 42433,
+      "sha256": "8073a3e5ee50187e8b1c46b51930163a2a4ef1a985e05e702845db5d365cc7f9"
     },
     {
       "path": "tests/test_project_memory.py",

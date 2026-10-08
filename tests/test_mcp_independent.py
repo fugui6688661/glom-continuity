@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -664,6 +665,17 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
                 small, _ = await peer.call('continuity_context', {'max_chars': exact_size - 1})
                 self.assertTrue(small['result']['isError'])
                 self.assertEqual(small['result']['structuredContent']['code'], 'BUDGET_TOO_SMALL')
+                refusal = small['result']['structuredContent']
+                self.assertIsNone(refusal['data'])
+                hint = re.search(r'required_mcp_chars=(\d+)', refusal['error'])
+                self.assertIsNotNone(hint, refusal)
+                hinted_budget = int(hint.group(1))
+                self.assertEqual(hinted_budget, exact_size)
+                recovered, _ = await peer.call('continuity_context', {'max_chars': hinted_budget})
+                self.assertFalse(recovered['result'].get('isError', False), recovered)
+                actual_size = len(json.dumps(recovered['result'], ensure_ascii=False, separators=(',', ':'))) + 1
+                self.assertLessEqual(actual_size, hinted_budget)
+                self.assertEqual(recovered['result']['structuredContent']['data']['check']['state'], state)
                 self.assertEqual(self.cli('status'), before)
 
 
