@@ -1,6 +1,6 @@
-# Authorized progress saving — XS candidate
+# Authorized progress saving — XS 0.2.0
 
-This CLI boundary accepts a structured draft from one explicitly selected project. It does not read chats, call a model, install a hook, or start a daemon. It is not present in the public Alpha.7 assets. Check the executable's help; the version label alone does not identify this candidate.
+This CLI boundary accepts a structured draft from one explicitly selected project. It does not read chats, call a model, install a hook, or start a daemon. It is not present in the older Alpha.7 assets. Check the executable's help and matching Release checksums; the version label alone does not identify installed bytes.
 
 The intended everyday benefit is fewer repeated save instructions, without treating every completed response as a reliable memory. The assistant prepares the draft; this core validates and commits it. Candidates containing the [Claude prepared-progress hook](../adapters/claude-code/authorized-save.md) can opt into that separate session-scoped adapter. Its actual event loading and ordinary-user end-to-end acceptance require their own evidence. A successful local CLI test does not prove automatic saving in Codex, Claude Code, Harness or WorkBuddy.
 

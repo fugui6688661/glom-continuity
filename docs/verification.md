@@ -2,6 +2,16 @@
 
 This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
 
+## XS 0.2.0 verification boundary — 2026-10-08
+
+XS 0.2.0 is the local-project CLI release, not a declaration that every host or ordinary user has passed acceptance. Its [named Release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.2.0) records the exact source revision, matching CI run, package checksums and final installation observations. A missing Release or attachment is not a successful download; use those receipts rather than applying a historical count to new bytes.
+
+This increment adds actionable character-budget diagnostics for complete reads, keeps constraints intact and leaves saving explicit. It also aligns the runtime, bundled guide, installation instructions and plugin metadata to one version. The installation regression compares the installed CLI against the declared release version, rather than accepting only an old `0.1.0` prefix.
+
+The [dated scope decision](../PROVENANCE.md) supersedes the earlier plan that required comparative research and external human first use before any stable release. Those experiments remain incomplete; no productivity, superiority or adoption claim follows from publication. Required checks remain actual package identity, relevant CLI/MCP regression, declared platform limits, clean installation and data/rule-preserving exit. Windows platform skips and host-specific pilots are never counted as universal compatibility.
+
+The native Codex pilot below belongs to its recorded r6 bytes. It is evidence for that pilot, not a new 0.2.0 model run. There is no new paid model experiment in this release increment.
+
 <a id="xs-native-codex-20261007"></a>
 
 ## XS r6: real native Codex pilot — 2026-10-07

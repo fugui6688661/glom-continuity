@@ -2,13 +2,13 @@
 
 ## 先选路线，不混装
 
-- **XS 候选用户**：使用 [INSTALL 的专用环境路线](../INSTALL.md#xs-candidate)，再按[首次保存与项目入口](../docs/first-use.md#first-save)接入。工具可放在项目外的专用环境；`setup --host` 经明确授权才写所选项目规则，已有规则需预览 integrate/upgrade。不必再复制下方旧模板。
+- **XS 0.2.0 用户**：使用 [INSTALL 的专用环境路线](../INSTALL.md#xs-candidate)，再按[首次保存与项目入口](../docs/first-use.md#first-save)接入。工具可放在项目外的专用环境；`setup --host` 经明确授权才写所选项目规则，已有规则需预览 integrate/upgrade。不必再复制下方旧模板。
 - **公开旧版或主动选择文件模板的用户**：下方“项目内工具副本”和“不创建 AGENTS.md”只约束这条模板路线，不是对 XS 入口的限制。不要把模板里的源码路径替换成 wheel 内猜出来的脚本。
 - **MCP 用户**：按[可选 MCP 接入](mcp.md)；它不是两条文件路线的必装前置条件。
 
 XS users keep the dedicated runtime and reviewed project-entry workflow in INSTALL. The project-local tool-copy requirement and no-AGENTS rule below apply only to the legacy templates. Choose one entry workflow; do not layer templates over an existing XS rule. Each host still needs its own loading check.
 
-XS 候选另有 [Claude Code 已准备进度保存入口](claude-code/authorized-save.md)：只在明确授权的单会话提交已准备草稿，退出请求撤权，不扫描聊天。它不是全宿主自动记忆或公开 Alpha.7 的能力；真实事件加载与模型草稿质量分别验收。
+XS 0.2.0 另有 [Claude Code 已准备进度保存入口](claude-code/authorized-save.md)：只在明确授权的单会话提交已准备草稿，退出请求撤权，不扫描聊天。它不是全宿主自动记忆或旧 Alpha.7 的能力；真实事件加载与模型草稿质量分别验收。
 
 目标是所有具备可用接入通道的 Agent，而不是固定两家产品。先读[通用接入合同](agent-neutral-contract.md)，按命令行、Skill、文件、MCP/API等能力选择接入方式；Codex与Harness是首批样例。`recipient`是协作标签，不存在按品牌限制接力对象的名单。
 

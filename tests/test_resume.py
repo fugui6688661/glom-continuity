@@ -1,5 +1,6 @@
 """Single-call recovery through public CLI processes only."""
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -127,6 +128,26 @@ class Resume(unittest.TestCase):
             result = self.cli('resume', '--max-chars', '10', ok=False)
             self.assertEqual(result['code'], 'BUDGET_TOO_SMALL')
             self.assertIsNone(result['data'])
+
+    def test_budget_error_reports_a_usable_size_without_disclosing_or_changing_memory(self):
+        saved = self.save()
+        before = self.cli('status')['data']
+        for command in ('resume', 'context', 'review'):
+            with self.subTest(command=command):
+                refused = self.cli(command, '--max-chars', '10', ok=False)
+                self.assertEqual(refused['code'], 'BUDGET_TOO_SMALL')
+                self.assertIsNone(refused['data'])
+                self.assertNotIn('Prepare a product video', json.dumps(refused))
+                hint = re.search(r'required_cli_chars=(\d+)', refused['error'])
+                self.assertIsNotNone(hint, refused)
+                required = int(hint.group(1))
+                self.assertGreater(required, 10)
+                restored = self.cli(command, '--max-chars', str(required))
+                actual = len(json.dumps(restored, ensure_ascii=False, sort_keys=True,
+                                        separators=(',', ':'))) + 1
+                self.assertLessEqual(actual, required)
+                self.assertEqual(restored['data']['project_id'], saved['project_id'])
+        self.assertEqual(self.cli('status')['data'], before)
 
     def test_unreferenced_planning_is_not_verified_work(self):
         self.save()

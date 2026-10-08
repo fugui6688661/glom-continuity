@@ -46,9 +46,14 @@ def build_server(project: Path, allow_writes: bool = False):
             # Match the pinned SDK's stdio serialization: unset defaults (such
             # as resultType) are not transmitted. Count both representations;
             # JSON-RPC's client-owned id is outside this budget.
-            if len(continuity.wire(result.model_dump(by_alias=True, exclude_unset=True))) + 1 > arguments['max_chars']:
+            required = len(continuity.wire(result.model_dump(by_alias=True, exclude_unset=True))) + 1
+            if required > arguments['max_chars']:
                 error = {'ok': False, 'code': 'BUDGET_TOO_SMALL', 'data': None,
-                         'error': 'The complete MCP tool result cannot fit; raise max_chars. No constraints were truncated.'}
+                         'error': f'Complete tool result needs required_mcp_chars={required}; '
+                                  f'requested_mcp_chars={arguments["max_chars"]}. '
+                                  'Review this size before increasing max_chars; nothing was truncated or saved. '
+                                  'This counts the MCP result, not tokens or outer JSON-RPC framing. '
+                                  'A later read rechecks state and may need a different budget.'}
                 return CallToolResult(content=[TextContent(type='text', text=continuity.wire(error))],
                                       structured_content=error, is_error=True)
         return result

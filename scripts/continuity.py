@@ -16,7 +16,7 @@ import stat
 import sys
 import uuid
 
-VERSION = '0.1.0-alpha.7'
+VERSION = '0.2.0'
 PRODUCT_ID = 'glom-continuity'
 DISPLAY_NAME = 'Recaloom'
 SOURCE_URL = 'https://github.com/fugui6688661/glom-continuity'
@@ -37,6 +37,16 @@ class Fault(Exception):
 
 def wire(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+
+def require_read_budget(data, limit):
+    required = len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1
+    if required > limit:
+        raise Fault('BUDGET_TOO_SMALL',
+                    f'Complete state needs required_cli_chars={required}; requested_cli_chars={limit}. '
+                    'Review this size before increasing --max-chars; nothing was truncated or saved. '
+                    'This is the current CLI envelope size, not tokens; MCP wrapping needs more. '
+                    'A later read rechecks state and may need a different budget.')
 
 
 def now():
@@ -1923,8 +1933,7 @@ def execute(args):
                 'revision': 0, 'checkpoint_id': None, 'instruction_authority': 'none',
                 'check': {'state': 'not_initialized', 'issues': [], 'semantic_completion_verified': False},
                 'text': 'This selected project has no Continuity storage. Tracking must be explicitly requested before first save.'}
-        if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
-            raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
+        require_read_budget(data, args.max_chars)
         return data
     if args.command == 'init':
         name = plain(args.name, 'name', 160)
@@ -1956,8 +1965,7 @@ def execute(args):
                     'issues': checked['issues'], 'next_steps': steps,
                     'note': 'Unchanged means the referenced bytes match, not that the result is correct or independent. '
                             'No files, checkpoint or handoff were changed. Review dependencies before saving a new checkpoint.'}
-            if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
-                raise Fault('BUDGET_TOO_SMALL', 'The complete review cannot fit; raise the budget, nothing silently omitted')
+            require_read_budget(data, args.max_chars)
             return data
         if args.command == 'resume':
             db.execute('BEGIN')
@@ -1971,8 +1979,7 @@ def execute(args):
                         'revision': 0, 'checkpoint_id': None, 'instruction_authority': 'none',
                         'check': check_recorded_references(root, db, current),
                         'text': 'Project tracking exists, but no checkpoint has been saved. Review the selected inputs before the first save.'}
-                if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
-                    raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
+                require_read_budget(data, args.max_chars)
                 return data
         if args.command in ('status', 'recover-storage'):
             # A recovery request opens writable only to let SQLite complete its
@@ -2058,8 +2065,7 @@ def execute(args):
                     if link:
                         data['result'] = saved_result(root, db, link['handoff_id'])
                         data['text'] += '\nLinked output saved at this revision; review its files before declaring the task complete.'
-            if len(wire({'ok': True, 'code': 'OK', 'data': data})) + 1 > args.max_chars:
-                raise Fault('BUDGET_TOO_SMALL', 'Critical state cannot fit; raise the budget, nothing silently omitted')
+            require_read_budget(data, args.max_chars)
             return data
         if args.command == 'return-work':
             plain(args.recipient, 'recipient', 80)

@@ -1,6 +1,7 @@
 """Optional MCP tests: real stdio, no model/network calls or internal DB reads."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -283,10 +284,14 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             result = await client.call_tool('continuity_context', {'max_chars': 3500})
             self.assertTrue(result.is_error)
             self.assertEqual(result.structured_content['code'], 'BUDGET_TOO_SMALL')
-            larger = await client.call_tool('continuity_context', {'max_chars': 9000})
+            hint = re.search(r'required_mcp_chars=(\d+)', result.structured_content['error'])
+            self.assertIsNotNone(hint)
+            budget = int(hint.group(1))
+            self.assertGreater(budget, 3500)
+            larger = await client.call_tool('continuity_context', {'max_chars': budget})
             self.assertFalse(larger.is_error)
-            encoded = json.dumps(larger.model_dump(by_alias=True, exclude_none=True), ensure_ascii=False, separators=(',', ':'))
-            self.assertLessEqual(len(encoded) + 1, 9000)
+            encoded = json.dumps(larger.model_dump(by_alias=True, exclude_unset=True), ensure_ascii=False, separators=(',', ':'))
+            self.assertLessEqual(len(encoded) + 1, budget)
             self.assertIn('Do not delete', larger.structured_content['data']['text'])
 
     async def test_readonly_context_recalls_task_matched_workflow_with_its_full_budget(self):

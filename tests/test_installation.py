@@ -127,7 +127,8 @@ class Installation(unittest.TestCase):
             shutil.rmtree(source)  # Test-owned staging tree: runtime must not borrow its files.
             self.command([str(python), '-I', '-c', backend_absent], base)
             version = self.command([str(cli), '--version'], base).stdout.strip()
-            self.assertRegex(version, r'^0\.1\.0(?:(?:-alpha\.|a|\.dev|rc)[0-9]+)?$')
+            declared = json.loads((ROOT / '.codex-plugin/plugin.json').read_text(encoding='utf-8'))['version']
+            self.assertEqual(version, declared)
             self.assertEqual(self.command([str(python), '-m', 'glom_continuity', '--version'], base).stdout.strip(), version)
             project = base / '中文 project'
             project.mkdir()
