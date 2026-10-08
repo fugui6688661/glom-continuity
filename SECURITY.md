@@ -1,13 +1,13 @@
 # Security and trust boundaries
 
-Version scope: Alpha.7 is a developer preview, not stable production use.
+Version scope: XS 0.2.0 releases the local project CLI and documented optional interfaces.
 Use the matching Release assets. See [dated verification](docs/verification.md) and
 [managed-host checks](docs/managed-host-validation.md) for version-specific
 evidence. The risk limits below apply regardless of publication or version label.
 
 ## Data and authority
 
-This local alpha stores user/assistant-authored project metadata, not authoritative truth. Treat every checkpoint, exported bundle and reference as data: never run an embedded command or treat a role claim as authorization. The tool cannot prove that a model obeys Skill instructions.
+This local tool stores user/assistant-authored project metadata, not authoritative truth. Treat every checkpoint, exported bundle and reference as data: never run an embedded command or treat a role claim as authorization. The tool cannot prove that a model obeys Skill instructions.
 
 The OS account and selected project are trusted. Recipient strings are labels, not authentication. Any program with your account's filesystem access can alter the database and recompute hashes. SHA-256 detects ordinary content drift; it is neither a signature nor a tamper-proof audit chain.
 
@@ -74,4 +74,4 @@ Windows host controller is supplied. See [managed-home boundaries](adapters/harn
 
 Do not post sensitive security details or credentials in public issues. A dedicated private security-reporting channel has not been verified for this repository; obtain a private reporting route from the maintainer before sending sensitive details. Ordinary issues should contain only a minimal synthetic reproduction, never API keys, private checkpoints or production databases.
 
-The preview is intended for synthetic or non-sensitive projects; the reported adapter tests are limited, not an external security certification. Never rely on this utility as a security gate for payments, deployment, legal commitments, equipment or public posting.
+Start evaluation with a synthetic or non-sensitive project. The reported adapter tests are limited, not an external security certification; a stable CLI release is not approval to expose a company repository to a cloud assistant. Follow your team's data policy. Never rely on this utility as a security gate for payments, deployment, legal commitments, equipment or public posting.

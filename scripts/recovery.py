@@ -25,7 +25,7 @@ def target(args):
 def recover(args, query):
     context = core.execute(argparse.Namespace(
         command='resume', project=args.project, expect_project_id=args.project_id,
-        query=query, max_chars=args.max_chars))
+        query=query, max_chars=args.max_chars, memory_summary=args.memory_summary))
     if context['check']['issues']:
         raise core.Fault('EVIDENCE_CHANGED', 'References changed; automatic delivery is withheld. Review with explicit resume.')
     return context
@@ -55,12 +55,20 @@ def execute(args, payload):
         receipt = {'format': 'continuity-recovery-v1', 'target': selected,
                    'revision': context['revision'], 'checkpoint_id': context['checkpoint_id'],
                    'query': query, 'issued_at': core.now(), 'runtime': runtime()}
+        if args.memory_summary:
+            receipt['memory_summary'] = True
         return {'delivery_state': 'prepared', 'receipt': receipt,
                 'receipt_is_authorization': False,
                 'note': 'Pass this receipt to deliver with the CURRENT host target. Do not cache project text.'}
-    if not isinstance(payload, dict) or set(payload) != {
-            'format', 'target', 'revision', 'checkpoint_id', 'query', 'issued_at', 'runtime'}:
+    required = {
+            'format', 'target', 'revision', 'checkpoint_id', 'query', 'issued_at', 'runtime'}
+    if (not isinstance(payload, dict) or not required <= set(payload)
+            or set(payload) - required - {'memory_summary'}):
         raise core.Fault('INVALID_INPUT', 'Expected a recovery receipt, not cached context')
+    if type(payload.get('memory_summary', False)) is not bool:
+        raise core.Fault('INVALID_INPUT', 'Receipt memory_summary must be a boolean')
+    if payload.get('memory_summary', False) != args.memory_summary:
+        raise core.Fault('TARGET_MISMATCH', 'Recovery detail mode changed; explicitly prepare a new receipt')
     if payload['format'] != 'continuity-recovery-v1' or payload['target'] != selected:
         raise core.Fault('TARGET_MISMATCH', 'Discard this result; the current project or session differs')
     if (type(payload['revision']) is not int or payload['revision'] < 0
@@ -95,6 +103,8 @@ def parser():
     result.add_argument('--generation', required=True,
                         help='Fresh host-owned binding epoch; change on project switch, pause or revocation')
     result.add_argument('--max-chars', type=int, default=6000)
+    result.add_argument('--memory-summary', action='store_true',
+                        help='Keep all selected memory; count omitted entries instead of listing them')
     result.add_argument('command', choices=('prepare', 'deliver'))
     return result
 

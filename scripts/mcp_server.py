@@ -42,13 +42,18 @@ def build_server(project: Path, allow_writes: bool = False):
                         'error': 'Local operation failed; no success is claimed'}
         result = CallToolResult(content=[TextContent(type='text', text=continuity.wire(envelope))],
                                 structured_content=envelope, is_error=not envelope['ok'])
-        if command in ('context', 'resume') and envelope['ok']:
+        if command in ('context', 'resume', 'review') and envelope['ok']:
             # Match the pinned SDK's stdio serialization: unset defaults (such
             # as resultType) are not transmitted. Count both representations;
             # JSON-RPC's client-owned id is outside this budget.
-            if len(continuity.wire(result.model_dump(by_alias=True, exclude_unset=True))) + 1 > arguments['max_chars']:
+            required = len(continuity.wire(result.model_dump(by_alias=True, exclude_unset=True))) + 1
+            if required > arguments['max_chars']:
                 error = {'ok': False, 'code': 'BUDGET_TOO_SMALL', 'data': None,
-                         'error': 'The complete MCP tool result cannot fit; raise max_chars. No constraints were truncated.'}
+                         'error': f'Complete tool result needs required_mcp_chars={required}; '
+                                  f'requested_mcp_chars={arguments["max_chars"]}. '
+                                  'Review this size before increasing max_chars; nothing was truncated or saved. '
+                                  'This counts the MCP result, not tokens or outer JSON-RPC framing. '
+                                  'A later read rechecks state and may need a different budget.'}
                 return CallToolResult(content=[TextContent(type='text', text=continuity.wire(error))],
                                       structured_content=error, is_error=True)
         return result
@@ -69,20 +74,30 @@ def build_server(project: Path, allow_writes: bool = False):
         return invoke('check')
 
     @server.tool(annotations=read)
+    def continuity_review(
+        max_chars: Annotated[int, Field(strict=True, ge=1)] = 12000,
+        expect_project_id: Annotated[str | None, Field(strict=True, min_length=1, max_length=80)] = None,
+    ) -> CallToolResult:
+        """Explain changed, missing and byte-unchanged references, including linked handoff sources. Read-only metadata, no raw file content or automatic repair. Unchanged bytes do not prove correctness; dependency impact requires review. The whole successful tool result must fit max_chars."""
+        return invoke('review', max_chars=max_chars, expect_project_id=expect_project_id)
+
+    @server.tool(annotations=read)
     def continuity_context(
         max_chars: Annotated[int, Field(strict=True, ge=1)] = 6000,
         query: Annotated[str, Field(strict=True, max_length=2000)] = '',
+        memory_summary: Annotated[bool, Field(strict=True)] = False,
     ) -> CallToolResult:
-        """Recover project state and registered habits/workflows matched by literal query keywords. max_chars bounds the complete successful tool result, including both data representations, excluding outer JSON-RPC framing. Too small fails without truncation. No automatic learning or new permission."""
-        return invoke('context', max_chars=max_chars, query=query)
+        """Recover project state and registered habits/workflows matched by literal query keywords. memory_summary keeps selected notes complete but replaces unselected IDs with reason counts; it deletes nothing. max_chars bounds the complete successful tool result, including both data representations, excluding outer JSON-RPC framing. Too small fails without truncation. No automatic learning or new permission."""
+        return invoke('context', max_chars=max_chars, query=query, memory_summary=memory_summary)
 
     @server.tool(annotations=read)
     def continuity_resume(
         max_chars: Annotated[int, Field(strict=True, ge=1)] = 6000,
         query: Annotated[str, Field(strict=True, max_length=2000)] = '',
+        memory_summary: Annotated[bool, Field(strict=True)] = False,
     ) -> CallToolResult:
-        """Inspect first-save state or recover a saved project, checked references, matched habits and pending handoffs in one read-only call. Never initializes, accepts a handoff, executes work or grants permission. The complete successful MCP result must fit max_chars, or nothing is returned."""
-        return invoke('resume', max_chars=max_chars, query=query)
+        """Inspect first-save state or recover a saved project, checked references, matched habits and pending handoffs in one read-only call. memory_summary keeps selected notes complete but replaces unselected IDs with reason counts; it deletes nothing. Never initializes, accepts a handoff, executes work or grants permission. The complete successful MCP result must fit max_chars, or nothing is returned."""
+        return invoke('resume', max_chars=max_chars, query=query, memory_summary=memory_summary)
 
     @server.tool(annotations=read)
     def continuity_receipt(id: Annotated[str, Field(strict=True, min_length=1, max_length=80)]) -> CallToolResult:
@@ -103,9 +118,11 @@ def build_server(project: Path, allow_writes: bool = False):
             from_file: Annotated[str, Field(strict=True, min_length=1, max_length=4096,
                 description='JSON draft path: relative to the bound project root, or absolute within that project. Never relative to the server launch directory.')],
             expect_revision: Annotated[int, Field(strict=True, ge=0)],
+            expect_project_id: Annotated[str | None, Field(strict=True, min_length=1, max_length=80)] = None,
         ) -> CallToolResult:
-            """Save a reviewed regular JSON file. Relative paths start at the bound project root, regardless of launch cwd. Re-read and reconcile revision conflicts, do not blindly retry."""
-            return invoke('checkpoint', from_file=str(project / from_file), expect_revision=expect_revision)
+            """Save a reviewed regular JSON file. Bind expect_project_id to the reviewed project identity when available; a revision alone is not a project identity. Relative paths start at the bound project root. Re-read and reconcile conflicts, do not blindly retry."""
+            return invoke('checkpoint', from_file=str(project / from_file), expect_revision=expect_revision,
+                          expect_project_id=expect_project_id)
 
         @server.tool(annotations=write)
         def continuity_handoff(

@@ -3,6 +3,8 @@
 Alpha.7 feature, **not included in Alpha.6**. These commands
 start the installed official Harness Web runtime in an independently owned home.
 They do not modify the Harness window or profile you already use.
+This page covers only the managed Harness adapter. Its validation does not gate,
+replace or establish acceptance of the core CLI or other host adapters.
 
 ## Start with an existing project
 
@@ -62,9 +64,11 @@ Do not infer the current workspace from that label. The native command reports
 the exact staged project binding. If the active conversation's workspace does
 not match it, recovery must not be treated as available for that conversation.
 
-The host listens on a random loopback port. The launcher suppresses SDK output
-so an authentication URL is not copied into logs. On startup failure it currently
-returns a bounded error rather than a detailed SDK log; diagnostics are limited.
+The host listens on a random loopback port. The launcher does not capture SDK
+stdout/stderr, so it cannot quote a child's error or infer that no error was
+printed. This does not disable or audit logging performed by the SDK itself.
+The XS source candidate adds the bounded observations below; they are not in
+the published Alpha.7 package and do not establish XS release acceptance.
 It passes an allowlisted environment and refuses a top-level host `.env` or
 DSH-home `.env`. It does not copy your usual profile, keys, chats or subscriptions.
 No model request is made by these lifecycle commands. Future model use through
@@ -84,11 +88,44 @@ Use another terminal, pointing at the **same exact home**:
 | --- | --- |
 | `status: stopped` | The ownership lock is free. No current managed run owns it. |
 | `status: running` | The private control channel confirmed this home and run identity. |
+| `status: starting` | This run's control channel responds, but host startup is not complete. |
 | `starting_or_unresponsive` | An owner still holds the lock; a replacement must not start. |
 | `stop: stopped` without a receipt | The home was already stopped; no new pause persistence is claimed. |
 | `stop: stopped` with `persisted_pause: true` | The pause barrier succeeded and all lock holders exited. |
 | `stop: stopped` with `persisted_pause: false` | The detached host exited; there was no reader to pause. |
 | `detach: detached` | The host stopped; future starts omit the native reader and UI notice. |
+
+### XS candidate: explain a failed start without saving secrets
+
+`status` stays read-only. When control is unconfirmed, `control_reason` distinguishes
+unreachable control from a rejected or wrong-identity response. `process_state:
+unknown` is intentional: a held lock or an earlier spawn observation is not a
+current child-liveness check. Neither a timeout nor a zero exit code proves ready.
+Read `next_action` before trying again; do not delete a lock or start a replacement.
+An identity-matched `starting` response also carries the last diagnostic and
+`next_action`. Here `control_verified: true` confirms the control response only;
+it does not change `starting` into `running` or certify recovery readiness.
+Invalid UTF-8, malformed/non-object JSON and invalid lifecycle fields are bounded
+`CONTROL_RESPONSE_INVALID` failures; reply bytes are not quoted. An invalid local
+run identity is `CONTROL_INVALID`, and no control request is sent for it.
+
+The launcher keeps one private `diagnostic.json`, bound to the current `run_id` and
+`home_id`, with only fixed fields. It records `launch_requested`, `process_spawned`,
+`spawn_failed`, or `process_exited`, plus the observation time. A waited child outcome
+is either `exit_code` or `termination_signal`, never a guessed cause. OS failure to
+obtain a child handle is `HOST_START_FAILED`, not a child exit. Once the managed
+home has been validated, unconfirmed safe-stop outcomes include the last available
+diagnostic: control failures, unconfirmed pause receipts, stop timeouts and failed
+Ctrl-C requests from `run`. An unavailable diagnostic stays unavailable; it never
+bypasses the pause barrier or authorizes forced termination or a replacement.
+
+No child output, authenticated URL, environment, command line, exception text or
+project content is copied into this diagnostic. `output_capture: not_collected`
+means **not obtained**, not “the host printed nothing”. Corrupt, unsafe or stale
+records are `availability: unavailable`; they never prove ready or authorize stop.
+The file is replaced for each run, not appended indefinitely. Existing homes need
+no configuration rewrite; a legacy home with no diagnostic simply reports unavailable.
+Detailed SDK error capture and root-cause attribution remain outside this feature.
 
 The first attachment starts paused. In the Harness command picker use
 `/recaloom status`, `/recaloom resume` or `/recaloom pause`. Resume permits
@@ -127,6 +164,12 @@ using an existing managed home with another candidate version.
   process-control adapter, telemetry collection or new public release.
 
 ## Reproduce the lifecycle checks
+
+The diagnostic-only synthetic checks require no DSH or model configuration:
+`python -B -m unittest discover -s tests -p test_host_diagnostics.py -v`.
+They invoke real public CLIs against bounded external test processes. Fixture
+homes are deleted only while holding the released ownership lock; reaping a
+launcher alone never permits deletion. These checks are not real-host acceptance.
 
 Set `CONTINUITY_DSH_PACKAGE` to the trusted installed SDK's `dsh/package.json`
 and run `python -m unittest discover -s tests -p test_managed_host.py -v`.

@@ -27,7 +27,7 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository))
     name: Portable / ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +79,45 @@ jobs:
           def identifier(method, owner):
               return owner if owner.endswith('.' + method) else owner + '.' + method
 
+          def dependency_diagnostic(stdout, stderr):
+              # Text matches are observations, not root-cause attribution. Retain
+              # no raw pip output, URLs, dependency names, paths or exception text.
+              text = '\n'.join(value.decode('utf-8', errors='replace') if isinstance(value, bytes)
+                               else value or '' for value in (stdout, stderr)).lower()
+              signals = {
+                  'timeout_text': ('readtimeouterror', 'connecttimeouterror', 'timed out'),
+                  'tls_text': ('sslcertverificationerror', 'certificate_verify_failed', 'sslerror'),
+                  'connection_text': ('newconnectionerror', 'connection refused', 'network is unreachable',
+                                      'temporary failure in name resolution'),
+                  'resolution_text': ('resolutionimpossible', 'conflicting dependencies'),
+                  'distribution_text': ('no matching distribution found', 'could not find a version that satisfies'),
+                  'storage_text': ('no space left on device', 'disk quota exceeded'),
+                  'permission_text': ('permission denied', 'access is denied'),
+                  'hash_text': ('do not match the hashes', 'hashmismatch'),
+              }
+              return {'signals_observed': sorted(code for code, patterns in signals.items()
+                                                if any(pattern in text for pattern in patterns)) or ['unclassified'],
+                      'root_cause': 'unknown', 'raw_output_retained': False}
+
+          def test_progress(stderr):
+              # Counts recognizable verbose lines, not unique tests or final coverage.
+              # Progress is not a verdict. Never retain free-form diagnostics,
+              # fixture values, skip reasons, command lines or raw partial logs.
+              if isinstance(stderr, bytes):
+                  stderr = stderr.decode('utf-8', errors='replace')
+              outcomes = {key: 0 for key in ('ok', 'FAIL', 'ERROR', 'skipped')}
+              started, last = 0, None
+              for match in re.finditer(
+                      r'^(test_[A-Za-z0-9_]{1,180}) \((test_[A-Za-z0-9_.]{1,360})\) \.\.\. ([^\n]*)',
+                      stderr or '', re.M):
+                  started += 1
+                  last = identifier(match[1], match[2])
+                  result = re.match(r'^(ok|FAIL|ERROR|skipped)(?:\s|$)', match[3])
+                  if result:
+                      outcomes[result[1]] += 1
+              return {'started': started, 'completed': sum(outcomes.values()),
+                      'outcomes': outcomes, 'last_started': last}
+
           def failure_detail(block):
               # Extract the last exception, not its free-form message or traceback.
               exceptions = re.findall(r'^[ \t|+]*([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|ExceptionGroup|Fault|TimeoutExpired))(?:: ([^\n]*))?$', block, re.M)
@@ -89,7 +128,10 @@ jobs:
                   'HANDOFF_NOT_FOUND NO_CHECKPOINT OUTPUT_EXISTS BUDGET_TOO_SMALL REVISION_CONFLICT '
                   'EVIDENCE_CHANGED HANDOFF_EXISTS WRONG_RECIPIENT ALREADY_ACCEPTED HANDOFF_EXPIRED '
                   'STALE_HANDOFF UNKNOWN_COMMAND UNRECOGNIZED_STORAGE NO_ARTIFACT '
-                  'HANDOFF_NOT_ACCEPTED RETURN_CONFLICT').split())
+                  'HANDOFF_NOT_ACCEPTED RETURN_CONFLICT INVALID_DIRECTORY ENVIRONMENT_IO_ERROR '
+                  'RUNTIME_UNAVAILABLE RUNTIME_START_FAILED RUNTIME_IDENTITY_MISMATCH '
+                  'PIP_BOOTSTRAP_FAILED PIP_UNAVAILABLE WHEEL_INSTALL_FAILED TOOL_CHECK_FAILED '
+                  'RUNTIME_TIMEOUT RUNTIME_MODE_UNAVAILABLE RUNTIME_INTERRUPTED ENTRY_WRITE_UNSUPPORTED').split())
               codes = sorted(set(re.findall(r'\b[A-Z][A-Z_]+\b', message)) & known_codes)
               codes += [label.upper() + '_' + number for label, number in re.findall(r'\[(Errno|WinError) (\d{1,6})\]', message)]
               if 'Coverage gap: did not actually SIGKILL' in message:
@@ -125,6 +167,8 @@ jobs:
                   'test_12_sigkill_during_stdout_recovers_committed_revision')})
               permitted['test_project_memory.ProjectMemory.test_symlinked_memory_cannot_load_another_project'] = (
                   'POSIX symlink fixture; Windows requires separate privilege handling', 'posix_symlink_unverified')
+              permitted['test_runtime_env.RuntimeEnvironment.test_timed_out_pip_stops_its_same_group_child_and_retains_environment'] = (
+                  'POSIX process-group cleanup; Windows tree cleanup not yet verified', 'runtime_posix_cleanup_unverified')
               permitted.update({'test_harness_install.HarnessInstall.' + name:
                   ('Private-directory installer currently supports POSIX only', 'harness_posix_installer_unverified') for name in (
                   'test_preflight_is_read_only_and_distinguishes_prepared_from_running',
@@ -140,6 +184,29 @@ jobs:
                   'test_bundle_file_links_are_not_followed',
                   'test_partial_installation_is_not_repaired_or_reported_ready',
                   'test_preflight_does_not_run_selected_sdk_code')})
+              # Existing product POSIX-only boundary, not a class-wide exemption.
+              # New methods/reasons require review and remain unexpected skips.
+              permitted.update({'test_host_diagnostics.HostDiagnostics.' + name:
+                  ('Managed homes currently support POSIX only', 'managed_host_posix_only') for name in (
+                  'test_unconfirmed_pause_receipt_keeps_diagnostic_and_live_ownership',
+                  'test_interrupt_refusals_include_diagnostic_without_releasing_child_ownership',
+                  'test_malformed_control_replies_are_bounded_diagnosed_and_never_echoed',
+                  'test_invalid_control_object_cannot_claim_state_or_authorize_stop',
+                  'test_reachable_starting_control_explains_wait_without_claiming_running',
+                  'test_stop_timeout_includes_diagnostic_and_retains_live_ownership',
+                  'test_interrupt_timeouts_keep_diagnostic_before_and_after_stop_acknowledgement',
+                  'test_interrupt_malformed_control_is_bounded_and_keeps_diagnostic',
+                  'test_unavailable_diagnostic_cannot_bypass_pause_refusal',
+                  'test_corrupt_run_identity_keeps_control_and_interrupt_failures_diagnosed',
+                  'test_failed_child_exit_is_explained_after_restart_without_recording_output',
+                  'test_fixture_retains_home_after_launcher_exit_while_child_owns_lock',
+                  'test_unconfirmed_control_explains_last_observation_without_ready_or_force_stop',
+                  'test_os_spawn_refusal_is_not_misreported_as_a_child_exit',
+                  'test_unsafe_diagnostic_destination_refuses_before_spawning',
+                  'test_wrong_run_control_is_explained_without_stopping_or_claiming_ready',
+                  'test_verified_control_and_persistent_pause_still_govern_normal_stop',
+                  'test_stale_or_extra_diagnostic_fields_are_unavailable_not_echoed',
+                  'test_signal_termination_is_not_an_exit_code')})
               skipped = []
               for method, owner, reason in re.findall(
                       r'^([A-Za-z0-9_]+) \(([A-Za-z0-9_.]+)\) \.\.\. skipped (.*)$', stderr, re.M):
@@ -159,7 +226,8 @@ jobs:
                            and len(skipped) == counts['skipped']
                            and all(item['allowed'] for item in skipped))
               return {'tests_run': int(ran[1]) if ran else None, 'counts': counts,
-                      'skipped': skipped, 'problems': problems, 'acceptance_valid': valid}
+                      'skipped': skipped, 'problems': problems, 'acceptance_valid': valid,
+                      'progress': test_progress(stderr)}
 
           root = Path.cwd()
           result_dir = Path(os.environ['RUNNER_TEMP']) / 'continuity-results'
@@ -202,9 +270,15 @@ jobs:
                       errors='replace', timeout=timeout)
                   phase.update(state='passed' if completed.returncode == 0 else 'failed',
                                exit_code=completed.returncode)
+                  if name == 'dependencies' and completed.returncode != 0:
+                      phase['diagnostic'] = dependency_diagnostic(completed.stdout, completed.stderr)
                   return completed
-              except subprocess.TimeoutExpired:
+              except subprocess.TimeoutExpired as exc:
                   phase.update(state='timeout', exit_code=None)
+                  if name == 'unittest':
+                      phase['progress'] = test_progress(exc.stderr)
+                  elif name == 'dependencies':
+                      phase['diagnostic'] = dependency_diagnostic(exc.stdout, exc.stderr)
                   return None
               finally:
                   phase['seconds'] = round(time.monotonic() - started, 2)
@@ -237,7 +311,9 @@ jobs:
                           if inventory is None or inventory.returncode != 0:
                               raise ValueError('Coverage inventory failed')
                           report['coverage'] = json.loads(inventory.stdout)
-                          tests = run_phase('unittest', ['scripts/ci_plan.py', 'portable'], 300)
+                          # Whole-suite capacity, not a product response-time SLO.
+                          # Individual test/host deadlines and all verdicts stay unchanged.
+                          tests = run_phase('unittest', ['scripts/ci_plan.py', 'portable'], 900)
                           if tests is not None:
                               report['unittest'] = test_summary(tests.stderr, os.name == 'nt')
                               if not report['unittest']['acceptance_valid']:

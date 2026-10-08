@@ -1,6 +1,6 @@
 # 一个助手，也能接着做
 
-本页适用于 alpha.6 预览版，安装以对应 Release 的具名附件及配套清单为准。它包含 dev4 已有的项目记忆与恢复能力；记忆始于 dev2，一调用恢复始于 dev3。这段版本说明不新增实测结论，历史结果见[验证记录](verification.md)。
+本页说明显式项目记忆与恢复。安装以对应 Release 的具名附件及配套清单，或明确提供的固定候选为准；先核对实际程序的能力。记忆始于 dev2，一调用恢复始于 dev3。历史结果仍按版本区分，见[验证记录](verification.md)。
 
 你不一定需要第二个助手。这个功能把一个项目里已经确认的习惯、做法和进度保存下来，下次由有权限的助手读取。它不扩大模型上下文窗口，也不训练模型。
 
@@ -18,7 +18,7 @@
 
 ## 让助手第一次保存
 
-按 [INSTALL](../INSTALL.md) 确认版本与帮助。把下面这段话连同项目绝对路径、匹配 [Skill](../skills/project-continuity/SKILL.md) 的实际绝对路径和完整可执行命令前缀交给有本地权限的助手。wheel 的 Skill 可在另一份匹配文档目录内，执行仍使用所选环境的程序。已有项目不要再次 init；陌生或损坏存储须先检查，不重建。
+按 [INSTALL](../INSTALL.md) 确认版本与帮助。把下面这段话连同项目绝对路径、匹配 [Skill](../skills/project-continuity/SKILL.md) 的实际绝对路径和完整可执行命令前缀交给有本地权限的助手。XS 候选 wheel 可用 doctor 定位随包说明；旧包按 INSTALL 取得匹配文档。执行始终使用所选环境的程序。已有项目不要再次 init；陌生或损坏存储须先检查，不重建。
 
 > 保存这个项目的进度，以及我明确确认的习惯和流程。猜测先列为 candidate，不导入其他项目或私人聊天；保存后告诉我记住了什么。
 
@@ -79,6 +79,14 @@ MCP：确认发现 `continuity_resume` 后调用 `continuity_resume(query="视�
 旧版迁移：未提供 `resume` 的包仍先 `status`，未初始化/无节点时按获准首次保存或仅报告分流，有节点才 `check` → `context`。MCP 同样先 `continuity_status`、有节点再 `continuity_check` / `continuity_context`。仅当版本/帮助确认支持记忆查询时给 `context` 传 `query`；alpha.5 不支持记忆或查询，不能把 `memory` 偷换成普通输入。它仍兼容原有记录，但不会自动获得新功能。
 
 有 memory 登记时，`data.memory.selected` 是选中的完整条目，`data.memory.omitted` 列出未选条目的 ID 和原因，`data.text` 也包含同样信息。有 checkpoint 的 `resume` 沿用 context 的同级字段 `data.text`、`data.memory`（存在时）及 `data.check`，另加 `data.recovery_state`、`data.name` 和 `data.pending_handoffs`，不会多嵌套一层 context。空状态没有 `data.memory` 键；未登记 memory 的旧 context 也不附加空的 `memory` 字段。
+
+## 日常恢复少带无关名单
+
+仅在所用候选的帮助/工具 schema 明确提供时，CLI `context` / `resume` 可加 `--memory-summary`；MCP `continuity_context` / `continuity_resume` 对应传 `memory_summary: true`。公开 Alpha.7 没有这项参数。
+
+精简模式仍返回所有选中条目的完整正文，以及原任务约束、待确认项、交接和引用检查。未选中条目不再逐条列路径和 ID，而是返回 `memory.omission_detail: "counts_only"` 与 `memory.omitted_counts`，按 candidate / retired / expired / not_matched 计数；此模式不返回 `memory.omitted`。默认仍为完整名单，需要审阅具体条目时不传该选项并给足预算。引用有问题时仍是 `requires_reference_review`，不把未经验证的记忆算成正常省略。
+
+这是明确选择的显示方式，不是删记忆、压缩有效要求或降低校验。太多有效条目仍可能超出 `max_chars`，此时完整失败而非截断。字符数不等于 token 数，工具也不保证模型会遵守记忆。恢复本身不会生成新节点；不要把无变化的轮询变成一个个新保存操作——每个不同操作仍保留回执，占用空间。停用记录、历史回执及备份不会被这项选项清理。
 
 ## 修正、停用和过期
 

@@ -17,6 +17,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "scripts/continuity.py"
 SERVER = ROOT / "scripts/mcp_server.py"
 SOURCE_HASHES = {}
-READ_TOOLS = {"continuity_status", "continuity_check", "continuity_context", "continuity_receipt", "continuity_resume", "continuity_doctor"}
+READ_TOOLS = {"continuity_status", "continuity_check", "continuity_context", "continuity_receipt", "continuity_resume", "continuity_doctor", "continuity_review"}
 WRITE_TOOLS = {"continuity_init", "continuity_checkpoint", "continuity_handoff", "continuity_accept", "continuity_export", "continuity_return_work"}
 
 
@@ -664,6 +665,17 @@ class IndependentMCPAcceptance(unittest.IsolatedAsyncioTestCase):
                 small, _ = await peer.call('continuity_context', {'max_chars': exact_size - 1})
                 self.assertTrue(small['result']['isError'])
                 self.assertEqual(small['result']['structuredContent']['code'], 'BUDGET_TOO_SMALL')
+                refusal = small['result']['structuredContent']
+                self.assertIsNone(refusal['data'])
+                hint = re.search(r'required_mcp_chars=(\d+)', refusal['error'])
+                self.assertIsNotNone(hint, refusal)
+                hinted_budget = int(hint.group(1))
+                self.assertEqual(hinted_budget, exact_size)
+                recovered, _ = await peer.call('continuity_context', {'max_chars': hinted_budget})
+                self.assertFalse(recovered['result'].get('isError', False), recovered)
+                actual_size = len(json.dumps(recovered['result'], ensure_ascii=False, separators=(',', ':'))) + 1
+                self.assertLessEqual(actual_size, hinted_budget)
+                self.assertEqual(recovered['result']['structuredContent']['data']['check']['state'], state)
                 self.assertEqual(self.cli('status'), before)
 
 

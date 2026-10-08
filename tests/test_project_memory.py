@@ -118,6 +118,66 @@ class ProjectMemory(unittest.TestCase):
         full = self.cli('context', '--max-chars', '12000')['data']
         self.assertEqual(full['memory']['selected'][0]['body'], '完整要求' * 500)
 
+    def test_opt_in_summary_keeps_selected_notes_but_counts_inactive_details(self):
+        self.save([self.note('keep', body='Preserve this complete current preference.')])
+        for group in range(4):
+            notes = [self.note(f'note-{group}-{index}', status='retired') for index in range(32)]
+            if group == 0:
+                notes[0] = self.note('keep', body='Preserve this complete current preference.')
+                notes[1] = self.note('expires', expires_at='2001-01-01T00:00:00+00:00')
+                notes[2] = self.note('specific', kind='workflow', when=['VIDEO'])
+                notes[3] = self.note('guess', status='candidate')
+            if group == 1:
+                notes[0] = self.note('second-current', body='Keep this other confirmed preference intact.')
+            filename = f'memory-{group}.json'
+            (self.project / filename).write_text(json.dumps({'format': 'continuity-memory-v1', 'items': notes}),
+                                                 encoding='utf-8')
+        self.draft['evidence'] = [{'path': f'memory-{group}.json', 'role': 'memory'} for group in range(4)]
+        self.draft['decisions'] = ['Use the owner-reviewed brief']
+        (self.project / 'checkpoint.json').write_text(json.dumps(self.draft), encoding='utf-8')
+        self.cli('checkpoint', '--from-file', str(self.project / 'checkpoint.json'), '--expect-revision', '1')
+        self.cli('handoff', '--recipient', 'next-reviewer', '--expect-revision', '2')
+        before = {str(path): path.read_bytes() for path in self.project.rglob('*') if path.is_file()}
+        full = self.cli('resume', '--max-chars', '50000')['data']
+        self.assertEqual(len(full['memory']['selected']), 2)
+        self.assertEqual(len(full['memory']['omitted']), 126)
+        for command in ('context', 'resume'):
+            with self.subTest(command=command):
+                response = self.cli(command, '--memory-summary')
+                data = response['data']
+                self.assertEqual(data['memory']['selected'], full['memory']['selected'])
+                self.assertNotIn('omitted', data['memory'])
+                self.assertEqual(data['memory']['omission_detail'], 'counts_only')
+                self.assertEqual(data['memory']['omitted_counts'],
+                                 {'candidate': 1, 'retired': 123, 'expired': 1, 'not_matched': 1})
+                self.assertIn('未经许可不发布', data['text'])
+                self.assertIn('标价待确认', data['text'])
+                self.assertIn('Use the owner-reviewed brief', data['text'])
+                if command == 'resume':
+                    self.assertEqual(data['pending_handoffs'], full['pending_handoffs'])
+                self.assertEqual(data['revision'], 2)
+                self.assertEqual(data['instruction_authority'], 'none')
+        self.assertEqual({str(path): path.read_bytes() for path in self.project.rglob('*') if path.is_file()}, before)
+
+    def test_summary_preserves_full_selected_budget_and_changed_reference_guard(self):
+        self.save([self.note('current', body='Do not shorten this requirement. ' * 90),
+                   self.note('old', status='retired', body='Obsolete body')])
+        full = self.cli('resume', '--max-chars', '14000')['data']
+        short = self.cli('resume', '--memory-summary', '--max-chars', '1000', ok=False)
+        self.assertEqual(short['code'], 'BUDGET_TOO_SMALL')
+        self.assertIsNone(short['data'])
+        summary = self.cli('resume', '--memory-summary', '--max-chars', '14000')['data']
+        self.assertEqual(summary['memory']['selected'], full['memory']['selected'])
+        self.memory['items'][0]['body'] = 'CHANGED_UNREVIEWED_BODY'
+        (self.project / 'habits.json').write_text(json.dumps(self.memory), encoding='utf-8')
+        guarded = self.cli('resume', '--memory-summary')['data']
+        self.assertEqual(guarded['recovery_state'], 'needs_review')
+        self.assertEqual(guarded['memory']['state'], 'requires_reference_review')
+        self.assertEqual(guarded['memory']['selected'], [])
+        self.assertNotIn('omitted', guarded['memory'])
+        self.assertNotIn('omitted_counts', guarded['memory'])
+        self.assertNotIn('CHANGED_UNREVIEWED_BODY', json.dumps(guarded))
+
     def test_invalid_note_never_advances_checkpoint(self):
         for override in ({'expires_at': '2030-01-01'}, {'status': 'confirmed-by-model'},
                          {'when': []}, {'kind': 'workflow', 'when': ['*']},

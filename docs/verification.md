@@ -2,6 +2,37 @@
 
 This records distinct tests, not a universal compatibility badge. Source, protocol, real model behavior, package validation, and public distribution are separate claims. Older sections below retain their original dates and limitations.
 
+## XS 0.2.0 verification boundary — 2026-10-08
+
+XS 0.2.0 is the local-project CLI release, not a declaration that every host or ordinary user has passed acceptance. Its [named Release](https://github.com/fugui6688661/glom-continuity/releases/tag/v0.2.0) records the exact source revision, matching CI run, package checksums and final installation observations. A missing Release or attachment is not a successful download; use those receipts rather than applying a historical count to new bytes.
+
+This increment adds actionable character-budget diagnostics for complete reads, keeps constraints intact and leaves saving explicit. It also aligns the runtime, bundled guide, installation instructions and plugin metadata to one version. The installation regression compares the installed CLI against the declared release version, rather than accepting only an old `0.1.0` prefix.
+
+The [dated scope decision](../PROVENANCE.md) supersedes the earlier plan that required comparative research and external human first use before any stable release. Those experiments remain incomplete; no productivity, superiority or adoption claim follows from publication. Required checks remain actual package identity, relevant CLI/MCP regression, declared platform limits, clean installation and data/rule-preserving exit. Windows platform skips and host-specific pilots are never counted as universal compatibility.
+
+The native Codex pilot below belongs to its recorded r6 bytes. It is evidence for that pilot, not a new 0.2.0 model run. There is no new paid model experiment in this release increment.
+
+<a id="xs-native-codex-20261007"></a>
+
+## XS r6: real native Codex pilot — 2026-10-07
+
+In one local synthetic quotation task, native Codex CLI 0.160.0 formed the comparison and its own progress draft, prepared one candidate, and ended its response. A session-scoped hook, reviewed through the native trust interface, submitted that candidate through Recaloom's existing core. The controller did not rewrite the final draft or call commit. A separate native session then recovered revision 2 and continued with a decision brief and unresolved questions. It was explicitly prompted to recover, not observed discovering memory without instructions.
+
+The comparison retained the all-in CNY4,500 ceiling for 36 units: A totalled CNY4,518; B CNY4,436. B remained conditional, with destination, payment terms, quote validity and delivery commitment unresolved. No order or supplier contact was authorized. The reader distinguished the older “prepared, not saved” operation note from the current saved checkpoint; its before/after project file maps matched. These observations are not certification of general semantic correctness or absence of every intermediate/background write.
+
+| Observed boundary | Result |
+| --- | --- |
+| Main-session Stop | Existing prepared candidate saved at revision 2; public `save show` and `resume` agreed |
+| Main-session SessionEnd | Matching generation revoked; public policy status read back ineffective |
+| An unrelated host SessionEnd | Rejected with `HOOK_SESSION_MISMATCH`; not counted as the target's success or failure |
+| Fresh native reader | Exit 0, current references, unchanged project endpoint hashes; no production action |
+
+The writer reported `gpt-6.1-sol` through native event metadata and used an existing ChatGPT login. The reader used the host default; its resolved model was not independently captured. Billing was not reconciled. The CLI binary SHA-256 was `6b582e8813ce7e8ed4c52814ee5cf230dba647bf2292df747a4003f2657ef201`; the installed r6 core was `39084eabdb50b15d3b0709a2f6eb41cf09eb251979e44b740ad3c3b7e3446568`, and the unmodified Claude event adapter was `07a3059d1c58487f7eb30fecd01d85c5ef1228f674e6ca52dbc6d56aaf3cf53e`. A compatible event shape does not make that adapter a supported Codex distribution.
+
+This was an adjusted pilot, **not an unchanged first-run pass**. Initial policy setup refused a missing draft baseline. An initial no-message native session was not available for resume. The controller retained both observations, revoked its old authorization, supplied the baseline and bound a new native session. Project and session hooks proved additive; only the three reviewed session definitions were trusted. No hook-trust bypass or internal trust-file edit was used. This setup still needs engineering knowledge and is not a one-click user experience.
+
+Local evidence includes selected native writer tool events, hook input-field observations and product receipts, public CLI readback, and the reader's complete JSONL output. The TUI capture consists of partial tool-returned terminal chunks, not complete process stdout. It supports the observed execution sequence but does not authenticate events against equally privileged local processes. Independent AI review checked arithmetic, preserved limits, persisted state and reader output; it is not external human first use. No general Codex compatibility, fully isolated host config, automatic compaction, crash-exit revocation, matched-model superiority or stable XS release follows from this case.
+
 ## Alpha.6 release scope and upgrade check — 2026-09-24
 
 Alpha.6 packages the previously source-only dev1–dev4 features. CLI SHA-256: `e0cf907af025c50ff257de2c9b9b8eafcddd776dcd9487484bec7bf61c3bf0c1`; MCP SHA-256: `bce11f7d8b5b5c282b7641029b70961243cb6aed39c78788bb6f36e6793f7354`. The CLI change from dev4 is the version constant, not a new execution engine. Docs now distinguish one-assistant recovery, optional handoff, installed commands, portable Skill files and historical host evidence.
@@ -218,3 +249,13 @@ Only promote a row when its specific test has a result. A protocol pass does not
 ## Release decision (not a runtime test)
 
 On 2026-09-12 the owner confirmed `fugui6688661/glom-continuity` as the public repository target and approved the [MIT License](../LICENSE). This resolves the owner/license decision only. It does not establish repository availability, publication, or any of the unverified behavior above. Earlier archives and their test provenance remain unchanged.
+
+## XS release-label preflight
+
+The local builder checks the literal top-level program `VERSION` against the packaged Codex plugin's `version` before creating an archive. Maintainers can additionally require the reviewed label:
+
+```sh
+python3 -B scripts/build_release.py --output /absolute/new-candidate.zip --expect-version 0.1.0-alpha.7
+```
+
+Use the intended candidate's exact declared label, not this example as a stable-release instruction. A mismatch, absent identity file or ambiguous/nonliteral declaration is refused before archive creation. The successful package manifest and build receipt expose `tool_version`; the manifest also records the archived program's SHA-256. This is a consistency check, not an import/execution check, version-syntax validator, signed publisher identity or release approval. Labels still cannot distinguish different builds: retain each archive's full SHA-256 and check the installed program and matching guide separately. Old manifests without these additive fields remain historical evidence; this check does not rewrite them or relabel public Alpha.7.

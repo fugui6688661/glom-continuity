@@ -1,5 +1,116 @@
 # 跨平台 CI 与验证边界
 
+## 后续 CI 安全诊断跑次 — 2026-10-07
+
+[37562199947](https://github.com/fugui6688661/glom-continuity/actions/runs/37562199947)
+对应 `d82c75b3810498e0b7a423b05168a63cafa8c4eb`，五条车道成功；实际合并提交
+`0af27695576f5bba0efeafc1f154bf8758af126d` 的 tree
+`889f692acdc0d1ef8f1276583547e79e17c174a9` 与候选相同。
+macOS和两组Ubuntu各349项、0失败/错误/跳过；Windows349项、0失败/错误、42项原声明限制；
+Harness35项Node与1项真实受管生命周期及清理通过。相比下方347项，增加的是CI诊断检查，
+不是两项新产品能力。五份下载artifact均核对GitHub摘要。
+
+前次90a28a0的[37560812257](https://github.com/fugui6688661/glom-continuity/actions/runs/37560812257)
+仍是四过一失败：macOS依赖安装exit1，产品测试未运行，根因未知。
+d82仅增加有限白名单故障信号与保存摘要检查，不改变依赖、超时、重试或放行规则；
+后一次成功不证明前次是网络故障或已定位修复。本页后续文档变化不继承成新候选测试结果。
+
+<a id="xs-ci-20261007"></a>
+
+## XS 候选：完成的固定跑次（2026-10-07）
+
+[CI 37559505399 / attempt 1](https://github.com/fugui6688661/glom-continuity/actions/runs/37559505399)
+的五个 job 均为 success。分支提交为 `21d6340e23b76dfa0b225b347e22d4025180040f`；
+实际合并测试提交为 `f626be5490627b6b631ab6bdca361c32af2f4445`，其 tree
+`73dd9a706e3ceb5c355efb79347fdb622f82843b` 与该分支提交相同。
+它包含下方旧轮次之后的修复和指南修改，原失败记录仍保留。
+
+| 环境 | 最终总结 |
+| --- | --- |
+| macOS14 / Python3.12.10 | 347 tests，0 failure/error/skip |
+| Ubuntu24.04 / Python3.10.21 | 347 tests，0 failure/error/skip |
+| Ubuntu24.04 / Python3.12.14 | 347 tests，0 failure/error/skip |
+| Windows2022 / Python3.12.10 | 347 tests，0 failure/error，42项下文预声明的平台限制；`passed_with_platform_skips` |
+| Required Harness / macOS / Node26.6.0 / DSH0.1.5-rc.1 | 35项 Node 用例和1项真实受管宿主生命周期通过，0跳过；正常受管目录清理确认 |
+
+四个 portable 环境均安装并检查 MCP2.2.0，依赖、测试清单和合成 smoke 分别通过。
+这些数字是各次 unittest 最终计数，不相加为独立能力数；progress 行数不用于补齐成绩。
+宿主摘要明确 `real_model_quality_verified=false`、`ui_verified=false`。
+Windows 的42项不是成功项，也不包含安全入口写入/交换或所有后代清理的支持承诺。
+
+五个下载归档的 SHA-256 与 GitHub artifact digest 完整一致（artifact 有保留期限）：
+
+| 摘要归档 | SHA-256 |
+| --- | --- |
+| Windows3.12 | `557df70ba1322c20c57ccb2deb98fafa5f37850b12cb81c92a7db603ae7e3464` |
+| Ubuntu3.12 | `65314f6e35f21d1356b0899bc7faa8ae901f5dcda777836590c452c2efa088d2` |
+| Ubuntu3.10 | `54b2a92f05f2060982d0fb81d2fb8d5e86863485e2663e0c438bc8a8f61213ba` |
+| macOS3.12 | `2134a4c68b8b7158805fb5a4a4355f882bca9971b4d7e93f87c9e4b144975d82` |
+| Harness/macOS | `657b50f12d6553855f5303e882b7eddf357b01aaa624216a9591a897d5adf621` |
+
+CI 通过仅关闭这一提交的声明范围；它不生成或发布 XS 正式版，不代替具名最终包的
+匿名下载、真实用户首用或模型自主行为验收。其他本机观察分别列在[支持矩阵](../adapters/support-matrix.md)。
+下面保留此前失败、修复依据和历史平台边界，不用新成功擦除旧结果。
+
+## XS 候选整套测试的执行预算
+
+[PR #7 首轮 37549582656](https://github.com/fugui6688661/glom-continuity/actions/runs/37549582656)
+在四个平台车道均被原有整套300秒上限截停；依赖、SDK、清单和smoke分别通过，
+没有取得完整测试结论。Required Harness单独通过，不抵消这四条失败。
+
+XS 的本地固定前序候选包含338项portable测试，完整执行观察为325.768秒。
+整套执行预算改为有界900秒、外层job20分钟，为更多安装/进程用例留出容量；
+这不是产品性能承诺，也不延长单项测试或真实宿主就绪期限，不删除任何断言或扩大跳过范围。
+若再次超时，只保留可识别测试ID、开始/结束行数和白名单结果行计数，不上传原始输出或异常内容。
+进度仅帮助定位，超时仍失败；是否有阻塞或平台缺陷须由新跑次判断，不能把这次预算调整当作已修复证明。
+
+`progress.started` 只计符合既定 verbose 格式的行；`completed` 只计这些行上紧随
+`... ` 的 `ok`、`FAIL`、`ERROR`、`skipped` 结果，`last_started` 是最后一条可识别行的 ID。
+它们不是去重后的测试开始/结束数，也不是最终覆盖计数。测试 docstring 换行、交错日志、
+子测试或截断输出都可能使行计数与实际执行数不同；例如最终 `Ran 3 tests` 时，
+progress 仍可能只识别 2 条开始行和 1 条结果行。不能用它们计算通过率、补齐缺失的总结或认证覆盖。
+最终执行计数取 unittest 的 `Ran N tests`，失败/跳过等计数取最终总结，并继续核对测试清单、
+精确 skip 分类和各必需阶段；缺总结、超时或失败不能凭 progress 转绿。
+
+## 2026-10-07：XS Windows 受管宿主的预声明边界
+
+固定候选 `4b339b913495db578e904582d9857220888d11f3` 的第二轮
+[37550892581](https://github.com/fugui6688661/glom-continuity/actions/runs/37550892581)
+Windows 摘要报告 42 项 skip，其中 19 项 `test_host_diagnostics.HostDiagnostics`
+未被原摘要分类。该类原有 decorator 理由为 `Managed homes currently support POSIX only`：
+这是既有产品 POSIX-only 边界，不是本次为消除失败新增的 skip。
+
+本次仅在完整 module/class/method ID、Windows 平台和上述原理由全部匹配时，
+将这 19 个方法逐一分类为 `managed_host_posix_only`。workflow 固定列出全部方法，
+摘要合同测试以真实测试文件 AST 核对恰好 19 个声明及原 decorator；不按整个类或名称前缀放行，
+新增方法、改名或理由变化都须重新审阅。没有改测试 decorator、执行清单或原有用例断言。
+
+| 当前精确分类范围 | 数量 | Windows 验证含义 |
+| --- | --- | --- |
+| 原有 POSIX 限制：FIFO 2、权限 4、SIGKILL 2、符号链接 1、私有目录安装器 13 | 22 | 对应平台能力未验证，不是通过 |
+| 运行时 POSIX 进程组清理 | 1 | Windows 进程树清理未验证 |
+| POSIX-only 受管宿主诊断 | 19 | Windows 缺少受支持的受管宿主能力，不能宣称全链路已验收 |
+| 合计 | 42 | 预声明的平台未验证项，不是 42 项全过 |
+
+Linux/macOS 的同名 skip、任一新方法/改理由、全 skip、MCP SDK 缺失、未知 skip、
+失败及不完整总结仍拒绝；必须有实际执行，且所有必需阶段通过，才可能得到
+`passed_with_platform_skips`，不能标作全部通过。Required Harness 的 macOS 成绩不补足 Windows
+受管宿主缺口；修正分类也不改写第二轮的实际失败结果，不抵消该轮其他失败。
+本机摘要合同红→绿仅证明分类逻辑，未重跑托管 CI，也不证明 Windows 功能通过。
+
+## XS 发行前检查：平台限定的清理用例
+
+XS 新增运行时清理检查包含一项仅适用于 POSIX 的进程组试验：
+`test_runtime_env.RuntimeEnvironment.test_timed_out_pip_stops_its_same_group_child_and_retains_environment`。
+CI 仅在 Windows 且完整 ID、理由
+`POSIX process-group cleanup; Windows tree cleanup not yet verified` 都匹配时，
+将它记为 `runtime_posix_cleanup_unverified`。这是明确的未验证项，不是 Windows 清理通过。
+
+摘要合同测试用合成 unittest 输出检验这一精确放行；相同跳过在 macOS/Linux、
+不同测试名、缺 MCP 理由、失败或整组无实际执行仍不能放行。
+这项检查不启动 Windows，也不证明本候选已经通过跨平台 CI；正式结果必须绑定具名候选和真实跑次。
+下方22项平台跳过的数字仅属于其注明的 Alpha.7 运行，不是 XS 的完整计数。
+
 ## 2026-09-25：Alpha.7 两条检查线路与本轮结果
 
 PR #5 的代码提交 `10e78d81d66a5715ca00d3646708634ea592eb9b` 已完成
@@ -136,7 +247,7 @@ alpha.4候选：JSON解析捕获`RecursionError`并返回`INVALID_INPUT`；测�
 
 ## Windows 与 Python 的真实边界
 
-以下来自本轮读取的 [CLI](../scripts/continuity.py)、[CLI 独立测试](../tests/test_independent.py)、[MCP 独立测试](../tests/test_mcp_independent.py)、[恢复独立测试](../tests/test_recovery_independent.py) 和 [交付测试](../tests/test_delivery.py)。这些是静态检查结论，不是 Windows 运行结果；并行修改后的实现必须重新核对。
+以下来自当时读取的仓库文件：`scripts/continuity.py`、`tests/test_independent.py`、`tests/test_mcp_independent.py`、`tests/test_recovery_independent.py` 和 `tests/test_delivery.py`。这些是历史源码路径，不是 wheel 说明目录内的可执行入口；需要复核源码时，使用该跑次对应的源包。以下是静态检查结论，不是 Windows 运行结果；并行修改后的实现必须重新核对。
 
 | 边界 | 当前源码/测试事实 | CI 如何解释 |
 | --- | --- | --- |

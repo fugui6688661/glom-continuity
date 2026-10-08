@@ -1,6 +1,7 @@
 """Optional MCP tests: real stdio, no model/network calls or internal DB reads."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -39,7 +40,7 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             names = {t.name for t in (await client.list_tools()).tools}
             self.assertEqual(names, {'continuity_status', 'continuity_check',
                                      'continuity_context', 'continuity_receipt', 'continuity_resume',
-                                     'continuity_doctor'})
+                                     'continuity_doctor', 'continuity_review'})
             diagnosis = await client.call_tool('continuity_doctor', {})
             self.assertFalse(diagnosis.is_error)
             self.assertEqual(diagnosis.structured_content['data']['product_id'], 'glom-continuity')
@@ -52,6 +53,37 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(state['data']['revision'], 0)
             self.assertEqual(state['data']['name'], 'Example project')
         self.assertEqual(self.cli('status')['data']['revision'], 0)
+
+    async def test_readonly_review_explains_changes_and_enforces_complete_result_budget(self):
+        initial = self.cli('init', '--name', 'Review changes')['data']
+        source = self.project / 'brief.txt'
+        source.write_text('ORIGINAL_BODY', encoding='utf-8')
+        draft = dict(objective='Review', next_action='Recheck input', constraints=[], decisions=[], unresolved=[],
+                     evidence=[{'path': 'brief.txt', 'role': 'input'}])
+        (self.project / 'draft.json').write_text(json.dumps(draft), encoding='utf-8')
+        self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'), '--expect-revision', '0')
+        source.write_text('NEW_BODY', encoding='utf-8')
+        async with self.client() as client:
+            result = await client.call_tool('continuity_review', {'expect_project_id': initial['project_id'], 'max_chars': 12000})
+            self.assertFalse(result.is_error, str(result.content))
+            data = result.structured_content['data']
+            self.assertTrue(data['read_only'])
+            self.assertEqual(data['references'][0]['state'], 'changed')
+            self.assertEqual(data['instruction_authority'], 'none')
+            self.assertNotIn('NEW_BODY', str(result.content))
+            # The SDK client may add defaults that were not on the wire. Give
+            # enough room for the CLI envelope, but not both MCP representations.
+            budget = len(json.dumps(result.structured_content, ensure_ascii=False,
+                                    sort_keys=True, separators=(',', ':'))) + 1
+            self.assertTrue(self.cli('review', '--max-chars', str(budget))['ok'])
+            small = await client.call_tool('continuity_review', {'max_chars': budget})
+            self.assertTrue(small.is_error)
+            self.assertEqual(small.structured_content['code'], 'BUDGET_TOO_SMALL')
+            self.assertIsNone(small.structured_content['data'])
+            wrong = await client.call_tool('continuity_review', {'expect_project_id': 'another'})
+            self.assertTrue(wrong.is_error)
+            self.assertEqual(wrong.structured_content['code'], 'PROJECT_MISMATCH')
+        self.assertEqual(self.cli('status')['data']['revision'], 1)
 
     async def test_readonly_resume_handles_first_save_then_recovers_current_project(self):
         async with self.client() as client:
@@ -74,6 +106,47 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(small.is_error)
             self.assertEqual(small.structured_content['code'], 'BUDGET_TOO_SMALL')
             self.assertIsNone(small.structured_content['data'])
+
+    async def test_opt_in_memory_summary_is_readonly_and_keeps_mcp_wire_budget(self):
+        self.assertTrue(self.cli('init', '--name', 'Memory summary')['ok'])
+        notes = [{'id': f'note-{index}', 'kind': 'preference', 'title': 'Synthetic note',
+                  'body': 'Preserve the full current preference.', 'when': ['*'],
+                  'status': 'active' if index < 2 else 'retired', 'source': 'Synthetic owner',
+                  'expires_at': None} for index in range(32)]
+        (self.project / 'memory.json').write_text(json.dumps({'format': 'continuity-memory-v1', 'items': notes}))
+        draft = dict(objective='Keep useful memory', next_action='Review', constraints=['Do not publish'],
+                     decisions=['Use reviewed input'], unresolved=['Price unknown'], evidence=[{'path': 'memory.json', 'role': 'memory'}])
+        (self.project / 'draft.json').write_text(json.dumps(draft))
+        self.assertTrue(self.cli('checkpoint', '--from-file', str(self.project / 'draft.json'), '--expect-revision', '0')['ok'])
+        self.assertTrue(self.cli('handoff', '--recipient', 'next-reviewer', '--expect-revision', '1')['ok'])
+        before = {str(path): path.read_bytes() for path in self.project.rglob('*') if path.is_file()}
+        async with self.client() as client:
+            for tool in ('continuity_context', 'continuity_resume'):
+                full = await client.call_tool(tool, {'max_chars': 50000})
+                self.assertFalse(full.is_error, str(full.content))
+                result = await client.call_tool(tool, {'memory_summary': True, 'max_chars': 6000})
+                self.assertFalse(result.is_error, str(result.content))
+                data = result.structured_content['data']
+                self.assertEqual(data['memory']['selected'], full.structured_content['data']['memory']['selected'])
+                self.assertEqual(len(data['memory']['selected']), 2)
+                self.assertEqual(data['memory']['omitted_counts'], {'retired': 30})
+                self.assertNotIn('omitted', data['memory'])
+                self.assertIn('Do not publish', data['text'])
+                self.assertIn('Price unknown', data['text'])
+                self.assertIn('Use reviewed input', data['text'])
+                if tool == 'continuity_resume':
+                    self.assertEqual(data['pending_handoffs'], full.structured_content['data']['pending_handoffs'])
+                # A budget that fits one envelope but not MCP's two representations must fail.
+                budget = len(json.dumps(result.structured_content, ensure_ascii=False, sort_keys=True,
+                                        separators=(',', ':'))) + 1
+                cli = self.cli(tool.removeprefix('continuity_'), '--memory-summary', '--max-chars', str(budget))
+                self.assertTrue(cli['ok'])
+                limited = await client.call_tool(tool, {'memory_summary': True, 'max_chars': budget})
+                self.assertEqual(limited.structured_content['code'], 'BUDGET_TOO_SMALL')
+                self.assertIsNone(limited.structured_content['data'])
+                malformed = await client.call_tool(tool, {'memory_summary': 'false', 'max_chars': 50000})
+                self.assertTrue(malformed.is_error)
+        self.assertEqual({str(path): path.read_bytes() for path in self.project.rglob('*') if path.is_file()}, before)
 
     async def test_mcp_writer_hands_off_to_cli_and_recovers_its_next_revision(self):
         (self.project / 'input.txt').write_text('source data', encoding='utf-8')
@@ -103,6 +176,30 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             receipt = await client.call_tool('continuity_receipt', {'id': handoff_id})
             self.assertEqual(receipt.structured_content['data']['state'], 'accepted')
             self.assertFalse(receipt.structured_content['data']['external_actions_verified'])
+
+    async def test_checkpoint_identity_guard_is_enforced_by_the_stdio_writer(self):
+        identity = self.cli('init', '--name', 'Bound writer')['data']['project_id']
+        draft = dict(objective='A reviewed plan', next_action='Review unknowns', constraints=['No publishing'],
+                     decisions=[], unresolved=['Schedule unknown'], evidence=[])
+        (self.project / 'bound.json').write_text(json.dumps(draft), encoding='utf-8')
+        before = (self.project / '.continuity/state.sqlite3').read_bytes()
+        async with self.client(writable=True) as client:
+            arguments = {'from_file': 'bound.json', 'expect_revision': 0,
+                         'expect_project_id': 'another-project'}
+            rejected = await client.call_tool('continuity_checkpoint', arguments)
+            self.assertTrue(rejected.is_error, str(rejected.content))
+            self.assertEqual(rejected.structured_content['code'], 'PROJECT_MISMATCH')
+            self.assertIsNone(rejected.structured_content['data'])
+            self.assertEqual((self.project / '.continuity/state.sqlite3').read_bytes(), before)
+            arguments['expect_project_id'] = identity
+            saved = await client.call_tool('continuity_checkpoint', arguments)
+            self.assertFalse(saved.is_error, str(saved.content))
+            self.assertEqual(saved.structured_content['data']['revision'], 1)
+        async with self.client() as readonly:
+            self.assertNotIn('continuity_checkpoint', {t.name for t in (await readonly.list_tools()).tools})
+            rejected = await readonly.call_tool('continuity_checkpoint', arguments)
+            self.assertTrue(rejected.is_error)
+        self.assertEqual(self.cli('status')['data']['revision'], 1)
 
     async def test_mcp_returns_work_for_cli_receipt_and_new_readonly_session(self):
         self.cli('init', '--name', 'Result round trip')
@@ -187,10 +284,14 @@ class MCPIntegration(unittest.IsolatedAsyncioTestCase):
             result = await client.call_tool('continuity_context', {'max_chars': 3500})
             self.assertTrue(result.is_error)
             self.assertEqual(result.structured_content['code'], 'BUDGET_TOO_SMALL')
-            larger = await client.call_tool('continuity_context', {'max_chars': 9000})
+            hint = re.search(r'required_mcp_chars=(\d+)', result.structured_content['error'])
+            self.assertIsNotNone(hint)
+            budget = int(hint.group(1))
+            self.assertGreater(budget, 3500)
+            larger = await client.call_tool('continuity_context', {'max_chars': budget})
             self.assertFalse(larger.is_error)
-            encoded = json.dumps(larger.model_dump(by_alias=True, exclude_none=True), ensure_ascii=False, separators=(',', ':'))
-            self.assertLessEqual(len(encoded) + 1, 9000)
+            # The high-level client adds defaults after receiving the frame.
+            # Exact transport sizing is checked by the raw peer regression.
             self.assertIn('Do not delete', larger.structured_content['data']['text'])
 
     async def test_readonly_context_recalls_task_matched_workflow_with_its_full_budget(self):

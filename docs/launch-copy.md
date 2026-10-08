@@ -16,7 +16,7 @@ Recaloom · 续珞（原 glom-continuity）把这些信息保存在你的项目�
 
 可以直接用本地命令，也可以接入支持本地 MCP 的助手。工具本身不调用模型、不上传项目，不要求你更换现有助手。连接云端助手时，收到的上下文仍受该服务的数据处理规则影响。
 
-Alpha.6 为开发者预览，带来项目记忆、只读恢复、安装诊断与成果回存。真实 Codex → DeepSeek Harness → 新 Codex 的合成接力记录属于旧 Alpha.5，不冒认为新版实接结果。逐版本协议和跨平台 CI 见验证记录；外部真人试用和完整效果对照仍未完成。不把支持标准接口说成所有产品都已兼容。
+XS 0.2.0 交付本地项目工具：带配套指南的安装包、项目入口预览、原规则保留、引用变化审阅，以及明确授权后的进度保存。基础用法不需要 Harness。可选宿主入口各有版本与权限要求，不把支持标准接口说成所有产品都已兼容。历史真实模型实验、逐版本 CI、外部试用和效果对照的未决项，分别记录在验证文档里。
 
 先用合成项目试一次：保存、恢复、看到变化被拒绝，再决定是否用于自己的工作。
 
@@ -30,11 +30,11 @@ Recaloom (formerly glom-continuity) stores that working state in your project. A
 
 Use the portable CLI or connect a local MCP-capable assistant. The utility makes no model calls or uploads. A connected cloud assistant may still send recovered context to its provider.
 
-Alpha.6 packages explicit project memory, read-only recovery, runtime diagnosis and linked result return as a developer preview. The maintainer-observed synthetic Codex → DeepSeek Harness → fresh Codex recovery belongs to Alpha.5, not a new Alpha.6 host trial. Consult the per-version verification record for protocol and CI results. External human trials and a complete matched-model comparison are still open. Supporting an interface is not the same as testing every client.
+XS 0.2.0 delivers the local project tool: a bundled matching guide, reviewed project-entry setup, preservation of existing rules, reference-change review and explicitly authorized progress saving. Basic use does not need Harness. Host adapters have separate version and permission requirements. Consult the dated verification record for actual model experiments, CI and open human-first-use and comparison questions. Supporting an interface is not the same as testing every client.
 
 Start with a synthetic project. Save it, recover it, and see what happens when its inputs change.
 
-## Release notes draft: 0.1.0-alpha.6
+## Historical release notes: 0.1.0-alpha.6
 
 - Packages the previously source-only project-memory, resume, doctor and return-work features. One assistant can save and resume without arranging a handoff.
 - Adds a first-use card, version-specific installation and upgrade instructions, and separate wheel/portable command paths. Existing projects must not be reinitialized.
@@ -55,4 +55,4 @@ Earlier alpha.2 work retained:
 - Reworked the Chinese/English first-run guide, compatibility evidence and removal instructions.
 - Preserved old archives; do not substitute this build's results for their contents.
 
-See [verification](verification.md) for the tested environment, source hashes and outstanding research. The owner has approved the repository target `fugui6688661/glom-continuity` and the [MIT License](../LICENSE). The preview scope is explicit in [PROVENANCE](../PROVENANCE.md). Verify the actual public download before using this text as an announcement; never turn outstanding items into checked boxes merely by publishing it.
+See [verification](verification.md) for the tested environment, source hashes and outstanding research. The owner has approved the repository target `fugui6688661/glom-continuity` and the [MIT License](../LICENSE). The XS scope decision is explicit in [PROVENANCE](../PROVENANCE.md). Verify the actual public download before using this text as an announcement; never turn outstanding items into checked boxes merely by publishing it.

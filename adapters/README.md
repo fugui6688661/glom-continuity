@@ -1,12 +1,22 @@
 # Continuity 跨 Agent 项目适配
 
+## 先选路线，不混装
+
+- **XS 0.2.0 用户**：使用 [INSTALL 的专用环境路线](../INSTALL.md#xs-candidate)，再按[首次保存与项目入口](../docs/first-use.md#first-save)接入。工具可放在项目外的专用环境；`setup --host` 经明确授权才写所选项目规则，已有规则需预览 integrate/upgrade。不必再复制下方旧模板。
+- **公开旧版或主动选择文件模板的用户**：下方“项目内工具副本”和“不创建 AGENTS.md”只约束这条模板路线，不是对 XS 入口的限制。不要把模板里的源码路径替换成 wheel 内猜出来的脚本。
+- **MCP 用户**：按[可选 MCP 接入](mcp.md)；它不是两条文件路线的必装前置条件。
+
+XS users keep the dedicated runtime and reviewed project-entry workflow in INSTALL. The project-local tool-copy requirement and no-AGENTS rule below apply only to the legacy templates. Choose one entry workflow; do not layer templates over an existing XS rule. Each host still needs its own loading check.
+
+XS 0.2.0 另有 [Claude Code 已准备进度保存入口](claude-code/authorized-save.md)：只在明确授权的单会话提交已准备草稿，退出请求撤权，不扫描聊天。它不是全宿主自动记忆或旧 Alpha.7 的能力；真实事件加载与模型草稿质量分别验收。
+
 目标是所有具备可用接入通道的 Agent，而不是固定两家产品。先读[通用接入合同](agent-neutral-contract.md)，按命令行、Skill、文件、MCP/API等能力选择接入方式；Codex与Harness是首批样例。`recipient`是协作标签，不存在按品牌限制接力对象的名单。
 
 当前提供文件/CLI接入模板与[可选本地MCP stdio适配](mcp.md)。模板随包提供不代表已安装。MCP已在一个真实Codex会话中恢复合成项目并继续一步；此外，9月14日已有一轮指定版本 Codex→DSH→Codex 的本地命令接力记录，不能将它计为 DSH MCP 也通过。准确范围见[实测记录](../docs/verification.md)。没有HTTP远端服务、模型代理、自启动后台服务或自动安装器。
 
 先读 [版本支持矩阵](support-matrix.md)，再看 [核查结果](../qa/adapter-readiness.md)。具体命令证据见 [本机核查记录](local-command-evidence.md)。
 
-## 安装必须另选用户项目
+## 旧文件模板：安装必须另选用户项目
 
 安装前明确选择项目绝对路径、助手和接入方式；不要把当前工具工程、用户主目录或活动App自动当作安装目标。Codex与Harness分别选择，不以选择一个推定授权另一个。
 
@@ -27,7 +37,7 @@
 
 如果需要严格只对一个助手可见，选择默认的手动读文件方式。项目 skill 安装本身是 opt-in；本包没有宣称或设置跨客户端通用的“禁止自动调用”开关。Skill 目录被发现、正文被加载、CLI 被调用、模型正确续接，是四件不同的事。
 
-不创建或覆盖 `AGENTS.md`、`CLAUDE.md`，也不创建全局技能、profile、MCP 配置或 hooks。现有项目指令仍须遵守。
+这条旧模板路线不创建或覆盖 `AGENTS.md`、`CLAUDE.md`，也不创建全局技能、profile、MCP 配置或 hooks。现有项目指令仍须遵守。
 
 ## CLI 合同与权限
 
